@@ -12,8 +12,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(core.Config.Origin)
-	fmt.Println(core.Config.Api.JsLogin)
 
+	err = core.GetUUID()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = core.PreLogin()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(core.SessionData.UUID)
 	core.Events.Emit("my_event", "this is my payload")
 }

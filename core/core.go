@@ -1,18 +1,37 @@
 package core
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/binarycraft007/wechat/core/utils"
 
 	"github.com/kataras/go-events"
 
+	"net/http"
 	"net/url"
 )
 
+type User struct {
+	Avatar string
+}
+
+type SessionData struct {
+	UUID string
+}
+
 type Core struct {
-	Config utils.Config
-	Events events.EventEmmiter
+	Config      utils.Config
+	Events      events.EventEmmiter
+	SessionData SessionData
+	User        User
+	RedirectUri string
+	QrCodeUrl   string
 }
 
 func New() (*Core, error) {
@@ -35,8 +54,97 @@ func New() (*Core, error) {
 	return &core, nil
 }
 
-func PreLogin() {
+func (core *Core) GetUUID() error {
+	resp, err := http.Post(core.Config.Api.JsLogin, "plain/text", http.NoBody)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	re := regexp.MustCompile(`window\.QRLogin\.code = (\d+); window\.QRLogin\.uuid = "([^"]+)";`)
+	matches := re.FindSubmatch(body)
+
+	codeStr := string(matches[1])
+	uuid := string(matches[2])
+
+	code, err := strconv.Atoi(codeStr) // Convert the code string to an integer
+	if err != nil {
+		return err
+	}
+
+	if code != http.StatusOK {
+		return errors.New("http status error: " + codeStr)
+	}
+
+	core.QrCodeUrl = "https://login.weixin.qq.com/qrcode/" + uuid
+	core.SessionData.UUID = uuid
+	return nil
+}
+
+func (core *Core) PreLogin() error {
+	ts := ^time.Now().UnixNano()
+	fmt.Println(ts)
 	params := url.Values{}
-	params.Add("param1", "value1")
-	params.Add("param2", "value2")
+	params.Add("tip", "0")
+	params.Add("uuid", core.SessionData.UUID)
+	params.Add("loginicon", "true")
+	params.Add("r", strconv.FormatInt(int64(ts), 10))
+
+	u, err := url.ParseRequestURI(core.Config.Api.Login)
+	if err != nil {
+		return err
+	}
+	u.RawQuery = params.Encode()
+	urlStr := fmt.Sprintf("%v", u)
+
+	resp, err := http.Get(urlStr)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	httpStatusSuccess := strings.Contains(string(body), "window.redirect_uri")
+	httpStatusCreated := strings.Contains(string(body), "window.userAvatar")
+
+	if !httpStatusCreated && !httpStatusSuccess {
+		re := regexp.MustCompile(`window\.code=(\d+);`)
+		match := re.FindString(string(body))
+		codeStr := string(match)
+
+		return errors.New("http status error: " + codeStr)
+	}
+
+	if httpStatusSuccess {
+		re := regexp.MustCompile(`^window\.code=\d+;window\.redirect_uri = '(.*)';$`)
+		redirectUri := re.FindStringSubmatch(string(body))
+
+		re = regexp.MustCompile(`(?:\w+\.)+\w+`)
+		matches := re.FindStringSubmatch(redirectUri[1])
+		config, err := utils.NewConfig(utils.ConfigOption{Host: matches[1]})
+		if err != nil {
+			return err
+		}
+
+		core.Config = *config
+		core.RedirectUri = redirectUri[1]
+	}
+
+	if httpStatusCreated {
+		re := regexp.MustCompile(`^window\.code=\d+;window\.userAvatar = '(.*)';$`)
+		userAvatar := re.FindStringSubmatch(string(body))
+
+		core.User.Avatar = userAvatar[1]
+	}
+
+	return nil
 }
