@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -67,23 +66,18 @@ func (core *Core) GetUUID() error {
 		return err
 	}
 
-	re := regexp.MustCompile(`window\.QRLogin\.code = (\d+); window\.QRLogin\.uuid = "([^"]+)";`)
-	matches := re.FindSubmatch(body)
+	start := strings.Index(string(body), "window.QRLogin.uuid = ")
+	start += len("window.QRLogin.uuid = ") + 1
+	end := len(string(body)) - 2
 
-	codeStr := string(matches[1])
-	uuid := string(matches[2])
+	uuid := string(body)[start:end]
 
-	code, err := strconv.Atoi(codeStr) // Convert the code string to an integer
-	if err != nil {
-		return err
-	}
-
-	if code != http.StatusOK {
-		return errors.New("http status error: " + codeStr)
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("http status error: " + resp.Status)
 	}
 
 	core.QrCodeUrl = "https://login.weixin.qq.com/qrcode/" + uuid
-	core.QrCode = "https://login.weixin.qq.com/l/" + uui
+	core.QrCode = "https://login.weixin.qq.com/l/" + uuid
 	core.SessionData.UUID = uuid
 	return nil
 }
@@ -118,9 +112,11 @@ func (core *Core) PreLogin() error {
 	httpStatusCreated := strings.Contains(string(body), "window.userAvatar")
 
 	if !httpStatusCreated && !httpStatusSuccess {
-		re := regexp.MustCompile(`window\.code=(\d+);`)
-		match := re.FindString(string(body))
-		codeStr := string(match)
+		start := strings.Index(string(body), "window.code=")
+		start += len("window.code=") + 1
+		end := len(string(body)) - 2
+
+		codeStr := string(body)[start:end]
 
 		return errors.New("http status error: " + codeStr)
 	}
