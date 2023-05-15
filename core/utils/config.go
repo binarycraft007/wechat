@@ -90,9 +90,11 @@ type Config struct {
 			PrivateMsgImage bool
 		}
 	}
-	Origin  string
-	BaseUrl string
-	Api     Api
+	SyncCheckRetSuccess int
+	SyncCheckRetLogout  int
+	Origin              string
+	BaseUrl             string
+	Api                 Api
 }
 
 type ConfigOption struct {
@@ -148,8 +150,10 @@ func NewConfig(option ConfigOption) (*Config, error) {
 	}
 
 	conf := Config{
-		Origin:  origin,
-		BaseUrl: origin + "/cgi-bin/mmwebwx-bin",
+		SyncCheckRetSuccess: 0,
+		SyncCheckRetLogout:  1101,
+		Origin:              origin,
+		BaseUrl:             origin + "/cgi-bin/mmwebwx-bin",
 		Api: Api{
 			JsLogin:         "https://" + loginUrl + "/jslogin?appid=wx782c26e4c19acffb&fun=new&lang=zh-CN&redirect_uri=https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxnewloginpage?mod=desktop",
 			Login:           "https://" + loginUrl + "/cgi-bin/mmwebwx-bin/login",

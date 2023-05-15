@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(core.User.Avatar)
+	log.Println(core.Avatar)
 
 	err = core.PreLogin()
 	if err != nil {
@@ -36,6 +36,11 @@ func main() {
 	log.Println(core.RedirectUri)
 
 	err = core.Login()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = core.Init()
 	if err != nil {
 		log.Fatal(err)
 	}

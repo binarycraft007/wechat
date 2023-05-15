@@ -1,10 +1,11 @@
 package core
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,14 +20,121 @@ import (
 )
 
 type User struct {
-	Avatar string
+	Uin               int    `json:"Uin"`
+	UserName          string `json:"UserName"`
+	NickName          string `json:"NickName"`
+	HeadImgURL        string `json:"HeadImgUrl"`
+	RemarkName        string `json:"RemarkName"`
+	PYInitial         string `json:"PYInitial"`
+	PYQuanPin         string `json:"PYQuanPin"`
+	RemarkPYInitial   string `json:"RemarkPYInitial"`
+	RemarkPYQuanPin   string `json:"RemarkPYQuanPin"`
+	HideInputBarFlag  int    `json:"HideInputBarFlag"`
+	StarFriend        int    `json:"StarFriend"`
+	Sex               int    `json:"Sex"`
+	Signature         string `json:"Signature"`
+	AppAccountFlag    int    `json:"AppAccountFlag"`
+	VerifyFlag        int    `json:"VerifyFlag"`
+	ContactFlag       int    `json:"ContactFlag"`
+	WebWxPluginSwitch int    `json:"WebWxPluginSwitch"`
+	HeadImgFlag       int    `json:"HeadImgFlag"`
+	SnsFlag           int    `json:"SnsFlag"`
+}
+
+type InitRequest struct {
+	BaseRequest BaseRequest `json:"BaseRequest"`
+}
+
+type BaseRequest struct {
+	Uin      int64  `json:"Uin"`
+	Sid      string `json:"Sid"`
+	Skey     string `json:"Skey"`
+	DeviceID string `json:"DeviceID"`
+}
+
+type InitResponse struct {
+	BaseResponse struct {
+		Ret    int    `json:"Ret"`
+		ErrMsg string `json:"ErrMsg"`
+	} `json:"BaseResponse"`
+	Count       int `json:"Count"`
+	ContactList []struct {
+		Uin              int    `json:"Uin"`
+		UserName         string `json:"UserName"`
+		NickName         string `json:"NickName"`
+		HeadImgURL       string `json:"HeadImgUrl"`
+		ContactFlag      int    `json:"ContactFlag"`
+		MemberCount      int    `json:"MemberCount"`
+		MemberList       []any  `json:"MemberList"`
+		RemarkName       string `json:"RemarkName"`
+		HideInputBarFlag int    `json:"HideInputBarFlag"`
+		Sex              int    `json:"Sex"`
+		Signature        string `json:"Signature"`
+		VerifyFlag       int    `json:"VerifyFlag"`
+		OwnerUin         int    `json:"OwnerUin"`
+		PYInitial        string `json:"PYInitial"`
+		PYQuanPin        string `json:"PYQuanPin"`
+		RemarkPYInitial  string `json:"RemarkPYInitial"`
+		RemarkPYQuanPin  string `json:"RemarkPYQuanPin"`
+		StarFriend       int    `json:"StarFriend"`
+		AppAccountFlag   int    `json:"AppAccountFlag"`
+		Statues          int    `json:"Statues"`
+		AttrStatus       int    `json:"AttrStatus"`
+		Province         string `json:"Province"`
+		City             string `json:"City"`
+		Alias            string `json:"Alias"`
+		SnsFlag          int    `json:"SnsFlag"`
+		UniFriend        int    `json:"UniFriend"`
+		DisplayName      string `json:"DisplayName"`
+		ChatRoomID       int    `json:"ChatRoomId"`
+		KeyWord          string `json:"KeyWord"`
+		EncryChatRoomID  string `json:"EncryChatRoomId"`
+		IsOwner          int    `json:"IsOwner"`
+	} `json:"ContactList"`
+	SyncKey struct {
+		Count int `json:"Count"`
+		List  []struct {
+			Key int `json:"Key"`
+			Val int `json:"Val"`
+		} `json:"List"`
+	} `json:"SyncKey"`
+	User struct {
+		Uin               int    `json:"Uin"`
+		UserName          string `json:"UserName"`
+		NickName          string `json:"NickName"`
+		HeadImgURL        string `json:"HeadImgUrl"`
+		RemarkName        string `json:"RemarkName"`
+		PYInitial         string `json:"PYInitial"`
+		PYQuanPin         string `json:"PYQuanPin"`
+		RemarkPYInitial   string `json:"RemarkPYInitial"`
+		RemarkPYQuanPin   string `json:"RemarkPYQuanPin"`
+		HideInputBarFlag  int    `json:"HideInputBarFlag"`
+		StarFriend        int    `json:"StarFriend"`
+		Sex               int    `json:"Sex"`
+		Signature         string `json:"Signature"`
+		AppAccountFlag    int    `json:"AppAccountFlag"`
+		VerifyFlag        int    `json:"VerifyFlag"`
+		ContactFlag       int    `json:"ContactFlag"`
+		WebWxPluginSwitch int    `json:"WebWxPluginSwitch"`
+		HeadImgFlag       int    `json:"HeadImgFlag"`
+		SnsFlag           int    `json:"SnsFlag"`
+	} `json:"User"`
+	ChatSet             string `json:"ChatSet"`
+	SKey                string `json:"SKey"`
+	ClientVersion       int    `json:"ClientVersion"`
+	SystemTime          int    `json:"SystemTime"`
+	GrayScale           int    `json:"GrayScale"`
+	InviteStartCount    int    `json:"InviteStartCount"`
+	MPSubscribeMsgCount int    `json:"MPSubscribeMsgCount"`
+	MPSubscribeMsgList  []any  `json:"MPSubscribeMsgList"`
+	ClickReportInterval int    `json:"ClickReportInterval"`
 }
 
 type SessionData struct {
 	UUID       string
-	S_Key      string
-	S_Id       string
-	U_In       string
+	Skey       string
+	Sid        string
+	Uin        string
 	PassTicket string
 	DataTicket string
 }
@@ -36,6 +144,7 @@ type Core struct {
 	Events      events.EventEmmiter
 	SessionData SessionData
 	User        User
+	Avatar      string
 	RedirectUri string
 	QrCodeUrl   string
 	QrCode      string
@@ -96,7 +205,7 @@ func (core *Core) PreLogin() error {
 	params.Add("tip", "0")
 	params.Add("uuid", core.SessionData.UUID)
 	params.Add("loginicon", "true")
-	params.Add("r", strconv.FormatInt(int64(ts), 10))
+	params.Add("r", fmt.Sprintf("%d", int64(ts)))
 
 	u, err := url.ParseRequestURI(core.Config.Api.Login)
 	if err != nil {
@@ -141,19 +250,14 @@ func (core *Core) PreLogin() error {
 			return err
 		}
 
-		q, err := url.ParseQuery(u.RawQuery)
-		if err != nil {
-			return err
-		}
+		u.Path = ""
+		u.RawQuery = ""
+		u.Fragment = ""
 
-		for key, _ := range q {
-			q.Del(key)
-		}
-
-		u.RawQuery = q.Encode()
 		urlStr := fmt.Sprintf("%v", u)
 
-		config, err := utils.NewConfig(utils.ConfigOption{Host: urlStr})
+		skipLen := len("https://")
+		config, err := utils.NewConfig(utils.ConfigOption{Host: urlStr[skipLen:]})
 		if err != nil {
 			return err
 		}
@@ -167,7 +271,7 @@ func (core *Core) PreLogin() error {
 		start += len("userAvatar = ") + 1
 		end := len(string(body)) - 2
 
-		core.User.Avatar = string(body)[start:end]
+		core.Avatar = string(body)[start:end]
 	}
 
 	return nil
@@ -214,19 +318,19 @@ func (core *Core) Login() error {
 		if err != nil {
 			return err
 		}
-		core.SessionData.S_Key = reSkey.FindStringSubmatch(data)[1]
+		core.SessionData.Skey = reSkey.FindStringSubmatch(data)[1]
 
 		reWxsid, err := regexp.Compile(`<wxsid>(.*)<\/wxsid>`)
 		if err != nil {
 			return err
 		}
-		core.SessionData.S_Id = reWxsid.FindStringSubmatch(data)[1]
+		core.SessionData.Sid = reWxsid.FindStringSubmatch(data)[1]
 
 		reWxuin, err := regexp.Compile(`<wxuin>(.*)<\/wxuin>`)
 		if err != nil {
 			return err
 		}
-		core.SessionData.U_In = reWxuin.FindStringSubmatch(data)[1]
+		core.SessionData.Uin = reWxuin.FindStringSubmatch(data)[1]
 
 		rePassTicket, err := regexp.Compile(`<pass_ticket>(.*)<\/pass_ticket>`)
 		if err != nil {
@@ -248,22 +352,104 @@ func (core *Core) Login() error {
 					strings.Contains(cookie, "data") &&
 					strings.Contains(cookie, "ticket") {
 					core.SessionData.DataTicket = re.FindStringSubmatch(cookie)[1]
-					log.Println(re.FindStringSubmatch(cookie)[1])
 				} else if strings.Contains(cookie, "wxuin") {
-					core.SessionData.U_In = re.FindStringSubmatch(cookie)[1]
-					log.Println(re.FindStringSubmatch(cookie)[1])
-
+					core.SessionData.Uin = re.FindStringSubmatch(cookie)[1]
 				} else if strings.Contains(cookie, "wxsid") {
-					core.SessionData.S_Id = re.FindStringSubmatch(cookie)[1]
-					log.Println(re.FindStringSubmatch(cookie)[1])
-
+					core.SessionData.Sid = re.FindStringSubmatch(cookie)[1]
 				} else if strings.Contains(cookie, "pass_ticket") {
 					core.SessionData.PassTicket = re.FindStringSubmatch(cookie)[1]
-					log.Println(re.FindStringSubmatch(cookie)[1])
 				}
 			}
 		}
 	}
 
 	return nil
+}
+
+func (core *Core) Init() error {
+	ts := time.Now().UnixNano()
+	r := ts / -1579
+
+	params := url.Values{}
+	params.Add("pass_ticket", core.SessionData.PassTicket)
+	params.Add("r", fmt.Sprintf("%d", int64(r)))
+
+	u, err := url.ParseRequestURI(core.Config.Api.Init)
+	if err != nil {
+		return err
+	}
+	u.RawQuery = params.Encode()
+	urlStr := fmt.Sprintf("%v", u)
+
+	baseRequest, err := core.GetBaseRequest()
+	if err != nil {
+		return err
+	}
+
+	data := InitRequest{
+		BaseRequest: *baseRequest,
+	}
+
+	marshalled, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(marshalled))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("http status error: " + resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var result InitResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return err
+	}
+
+	if result.BaseResponse.Ret == core.Config.SyncCheckRetLogout {
+		return errors.New("already logged out")
+	}
+
+	if result.BaseResponse.Ret != 0 {
+		return errors.New("core init error: ")
+	}
+
+	if len(result.SKey) > 0 {
+		core.SessionData.Skey = result.SKey
+	}
+
+	core.User = result.User
+	return nil
+}
+
+func (core *Core) GetBaseRequest() (*BaseRequest, error) {
+	uin, err := strconv.ParseInt(core.SessionData.Uin, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return &BaseRequest{
+		Uin:      uin,
+		Sid:      core.SessionData.Sid,
+		Skey:     core.SessionData.Skey,
+		DeviceID: utils.GetDeviceID(),
+	}, nil
 }
