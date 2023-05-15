@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/binarycraft007/wechat/core"
@@ -11,9 +12,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_ = core
-	//fmt.Println(core.Config.Origin)
-	//fmt.Println(core.Config.Api.JsLogin)
+	fmt.Println(core.Config.Origin)
+	fmt.Println(core.Config.Api.JsLogin)
 
-	//core.Events.Emit("my_event", "this is my payload")
+	core.Events.Emit("my_event", "this is my payload")
 }
