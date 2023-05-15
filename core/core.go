@@ -83,14 +83,13 @@ func (core *Core) GetUUID() error {
 	}
 
 	core.QrCodeUrl = "https://login.weixin.qq.com/qrcode/" + uuid
-	core.QrCode = "https://login.weixin.qq.com/l/" + uuid
+	core.QrCode = "https://login.weixin.qq.com/l/" + uui
 	core.SessionData.UUID = uuid
 	return nil
 }
 
 func (core *Core) PreLogin() error {
 	ts := ^time.Now().UnixNano()
-	fmt.Println(ts)
 	params := url.Values{}
 	params.Add("tip", "0")
 	params.Add("uuid", core.SessionData.UUID)
