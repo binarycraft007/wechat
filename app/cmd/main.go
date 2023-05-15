@@ -35,5 +35,10 @@ func main() {
 	}
 	log.Println(core.RedirectUri)
 
+	err = core.Login()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	//core.Events.Emit("my_event", "this is my payload")
 }
