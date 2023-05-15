@@ -32,6 +32,7 @@ type Core struct {
 	User        User
 	RedirectUri string
 	QrCodeUrl   string
+	QrCode      string
 }
 
 func New() (*Core, error) {
@@ -82,6 +83,7 @@ func (core *Core) GetUUID() error {
 	}
 
 	core.QrCodeUrl = "https://login.weixin.qq.com/qrcode/" + uuid
+	core.QrCode = "https://login.weixin.qq.com/l/" + uuid
 	core.SessionData.UUID = uuid
 	return nil
 }

@@ -20,7 +20,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	qrterminal.Generate(core.QrCodeUrl, qrterminal.L, os.Stdout)
+	qrterminal.Generate(core.QrCode, qrterminal.L, os.Stdout)
 	log.Println(core.QrCodeUrl)
 
 	err = core.PreLogin()
