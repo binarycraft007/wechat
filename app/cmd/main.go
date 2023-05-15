@@ -3,7 +3,10 @@ package main
 import (
 	"log"
 
+	"os"
+
 	"github.com/binarycraft007/wechat/core"
+	"github.com/mdp/qrterminal/v3"
 )
 
 func main() {
@@ -17,6 +20,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	qrterminal.Generate(core.QrCodeUrl, qrterminal.L, os.Stdout)
 	log.Println(core.QrCodeUrl)
 
 	err = core.PreLogin()
@@ -31,5 +35,5 @@ func main() {
 	}
 	log.Println(core.RedirectUri)
 
-	core.Events.Emit("my_event", "this is my payload")
+	//core.Events.Emit("my_event", "this is my payload")
 }
