@@ -1,8 +1,9 @@
 package core
 
 import (
-	utils "core/utils"
 	"fmt"
+
+	"github.com/binarycraft007/wechat/core/utils"
 
 	"github.com/kataras/go-events"
 
@@ -24,7 +25,9 @@ func New() (*Core, error) {
 		return nil, err
 	}
 
-	Events.On("my_event", func(payload ...interface{}) {
+	core.Config = *config
+
+	core.Events.On("my_event", func(payload ...interface{}) {
 		message := payload[0].(string)
 		fmt.Println(message) // prints "this is my payload"
 	})

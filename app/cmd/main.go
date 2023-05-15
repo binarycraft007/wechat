@@ -1,10 +1,16 @@
 package main
 
-import "github.com/binarycraft007/wechat/core"
+import (
+	"log"
+
+	"github.com/binarycraft007/wechat/core"
+)
 
 func main() {
-	core := core.New()
-
+	core, err := core.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 	_ = core
 	//fmt.Println(core.Config.Origin)
 	//fmt.Println(core.Config.Api.JsLogin)
