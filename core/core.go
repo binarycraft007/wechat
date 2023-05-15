@@ -52,73 +52,55 @@ type BaseRequest struct {
 	DeviceID string `json:"DeviceID"`
 }
 
+type Contact struct {
+	Uin              int    `json:"Uin"`
+	UserName         string `json:"UserName"`
+	NickName         string `json:"NickName"`
+	HeadImgURL       string `json:"HeadImgUrl"`
+	ContactFlag      int    `json:"ContactFlag"`
+	MemberCount      int    `json:"MemberCount"`
+	MemberList       []any  `json:"MemberList"`
+	RemarkName       string `json:"RemarkName"`
+	HideInputBarFlag int    `json:"HideInputBarFlag"`
+	Sex              int    `json:"Sex"`
+	Signature        string `json:"Signature"`
+	VerifyFlag       int    `json:"VerifyFlag"`
+	OwnerUin         int    `json:"OwnerUin"`
+	PYInitial        string `json:"PYInitial"`
+	PYQuanPin        string `json:"PYQuanPin"`
+	RemarkPYInitial  string `json:"RemarkPYInitial"`
+	RemarkPYQuanPin  string `json:"RemarkPYQuanPin"`
+	StarFriend       int    `json:"StarFriend"`
+	AppAccountFlag   int    `json:"AppAccountFlag"`
+	Statues          int    `json:"Statues"`
+	AttrStatus       int    `json:"AttrStatus"`
+	Province         string `json:"Province"`
+	City             string `json:"City"`
+	Alias            string `json:"Alias"`
+	SnsFlag          int    `json:"SnsFlag"`
+	UniFriend        int    `json:"UniFriend"`
+	DisplayName      string `json:"DisplayName"`
+	ChatRoomID       int    `json:"ChatRoomId"`
+	KeyWord          string `json:"KeyWord"`
+	EncryChatRoomID  string `json:"EncryChatRoomId"`
+	IsOwner          int    `json:"IsOwner"`
+}
+
 type InitResponse struct {
 	BaseResponse struct {
 		Ret    int    `json:"Ret"`
 		ErrMsg string `json:"ErrMsg"`
 	} `json:"BaseResponse"`
-	Count       int `json:"Count"`
-	ContactList []struct {
-		Uin              int    `json:"Uin"`
-		UserName         string `json:"UserName"`
-		NickName         string `json:"NickName"`
-		HeadImgURL       string `json:"HeadImgUrl"`
-		ContactFlag      int    `json:"ContactFlag"`
-		MemberCount      int    `json:"MemberCount"`
-		MemberList       []any  `json:"MemberList"`
-		RemarkName       string `json:"RemarkName"`
-		HideInputBarFlag int    `json:"HideInputBarFlag"`
-		Sex              int    `json:"Sex"`
-		Signature        string `json:"Signature"`
-		VerifyFlag       int    `json:"VerifyFlag"`
-		OwnerUin         int    `json:"OwnerUin"`
-		PYInitial        string `json:"PYInitial"`
-		PYQuanPin        string `json:"PYQuanPin"`
-		RemarkPYInitial  string `json:"RemarkPYInitial"`
-		RemarkPYQuanPin  string `json:"RemarkPYQuanPin"`
-		StarFriend       int    `json:"StarFriend"`
-		AppAccountFlag   int    `json:"AppAccountFlag"`
-		Statues          int    `json:"Statues"`
-		AttrStatus       int    `json:"AttrStatus"`
-		Province         string `json:"Province"`
-		City             string `json:"City"`
-		Alias            string `json:"Alias"`
-		SnsFlag          int    `json:"SnsFlag"`
-		UniFriend        int    `json:"UniFriend"`
-		DisplayName      string `json:"DisplayName"`
-		ChatRoomID       int    `json:"ChatRoomId"`
-		KeyWord          string `json:"KeyWord"`
-		EncryChatRoomID  string `json:"EncryChatRoomId"`
-		IsOwner          int    `json:"IsOwner"`
-	} `json:"ContactList"`
-	SyncKey struct {
+	Count       int       `json:"Count"`
+	ContactList []Contact `json:"ContactList"`
+	SyncKey     struct {
 		Count int `json:"Count"`
 		List  []struct {
 			Key int `json:"Key"`
 			Val int `json:"Val"`
 		} `json:"List"`
 	} `json:"SyncKey"`
-	User struct {
-		Uin               int    `json:"Uin"`
-		UserName          string `json:"UserName"`
-		NickName          string `json:"NickName"`
-		HeadImgURL        string `json:"HeadImgUrl"`
-		RemarkName        string `json:"RemarkName"`
-		PYInitial         string `json:"PYInitial"`
-		PYQuanPin         string `json:"PYQuanPin"`
-		RemarkPYInitial   string `json:"RemarkPYInitial"`
-		RemarkPYQuanPin   string `json:"RemarkPYQuanPin"`
-		HideInputBarFlag  int    `json:"HideInputBarFlag"`
-		StarFriend        int    `json:"StarFriend"`
-		Sex               int    `json:"Sex"`
-		Signature         string `json:"Signature"`
-		AppAccountFlag    int    `json:"AppAccountFlag"`
-		VerifyFlag        int    `json:"VerifyFlag"`
-		ContactFlag       int    `json:"ContactFlag"`
-		WebWxPluginSwitch int    `json:"WebWxPluginSwitch"`
-		HeadImgFlag       int    `json:"HeadImgFlag"`
-		SnsFlag           int    `json:"SnsFlag"`
-	} `json:"User"`
+	User                User   `json:"User"`
 	ChatSet             string `json:"ChatSet"`
 	SKey                string `json:"SKey"`
 	ClientVersion       int    `json:"ClientVersion"`
@@ -148,6 +130,7 @@ type Core struct {
 	RedirectUri string
 	QrCodeUrl   string
 	QrCode      string
+	ContactList []Contact
 }
 
 func New() (*Core, error) {
@@ -437,6 +420,8 @@ func (core *Core) Init() error {
 	}
 
 	core.User = result.User
+	core.ContactList = result.ContactList
+
 	return nil
 }
 
@@ -452,4 +437,11 @@ func (core *Core) GetBaseRequest() (*BaseRequest, error) {
 		Skey:     core.SessionData.Skey,
 		DeviceID: utils.GetDeviceID(),
 	}, nil
+}
+
+func (core *Core) UpdateContacts() error {
+	if len(core.ContactList) < 0 {
+		return errors.New("empty contact list")
+	}
+	return nil
 }
