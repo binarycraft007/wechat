@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/binarycraft007/wechat/core"
@@ -18,11 +17,19 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.Println(core.QrCodeUrl)
+
 	err = core.PreLogin()
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println(core.User.Avatar)
 
-	fmt.Println(core.SessionData.UUID)
+	err = core.PreLogin()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(core.RedirectUri)
+
 	core.Events.Emit("my_event", "this is my payload")
 }

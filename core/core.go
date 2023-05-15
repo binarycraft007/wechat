@@ -125,25 +125,43 @@ func (core *Core) PreLogin() error {
 	}
 
 	if httpStatusSuccess {
-		re := regexp.MustCompile(`^window\.code=\d+;window\.redirect_uri = '(.*)';$`)
-		redirectUri := re.FindStringSubmatch(string(body))
+		start := strings.Index(string(body), "redirect_uri=")
+		start += len("redirect_uri=") + 1
+		end := len(string(body)) - 2
+		redirectUri := string(body)[start:end]
 
-		re = regexp.MustCompile(`(?:\w+\.)+\w+`)
-		matches := re.FindStringSubmatch(redirectUri[1])
-		config, err := utils.NewConfig(utils.ConfigOption{Host: matches[1]})
+		u, err := url.Parse(redirectUri)
+		if err != nil {
+			return err
+		}
+
+		q, err := url.ParseQuery(u.RawQuery)
+		if err != nil {
+			return err
+		}
+
+		for key, _ := range q {
+			q.Del(key)
+		}
+
+		u.RawQuery = q.Encode()
+		urlStr := fmt.Sprintf("%v", u)
+
+		config, err := utils.NewConfig(utils.ConfigOption{Host: urlStr})
 		if err != nil {
 			return err
 		}
 
 		core.Config = *config
-		core.RedirectUri = redirectUri[1]
+		core.RedirectUri = redirectUri
 	}
 
 	if httpStatusCreated {
-		re := regexp.MustCompile(`^window\.code=\d+;window\.userAvatar = '(.*)';$`)
-		userAvatar := re.FindStringSubmatch(string(body))
+		start := strings.Index(string(body), "userAvatar = ")
+		start += len("userAvatar = ") + 1
+		end := len(string(body)) - 2
 
-		core.User.Avatar = userAvatar[1]
+		core.User.Avatar = string(body)[start:end]
 	}
 
 	return nil
