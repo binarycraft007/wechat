@@ -169,7 +169,10 @@ func (core *Core) PreLogin() error {
 		end := len(string(body)) - 2
 
 		core.Avatar = string(body)[start:end]
-		core.PreLogin()
+
+		if err := core.PreLogin(); err != nil {
+			return err
+		}
 	}
 
 	return nil

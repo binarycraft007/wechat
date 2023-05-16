@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -8,7 +9,14 @@ import (
 	"github.com/binarycraft007/wechat/core"
 )
 
+type PeriodicSyncOption struct {
+	Cancel context.CancelFunc
+	Period time.Duration
+}
+
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	wechatCore, err := core.New()
 	if err != nil {
 		log.Fatal(err)
@@ -47,15 +55,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = wechatCore.SyncCheck()
-	if err != nil {
-		log.Fatal(err)
-	}
+	go periodicSync(wechatCore, PeriodicSyncOption{
+		Cancel: cancel,
+		Period: 20,
+	}) // Call as a goroutine
 
-	err = wechatCore.Sync()
-	if err != nil {
-		log.Fatal(err)
+	select {
+	case <-ctx.Done(): // When sync returned 1101
+		// TODO call logout
+		log.Println("logged out")
 	}
+}
 
-	wechatCore.LastSyncTime = time.Now().UnixNano()
+func periodicSync(w *core.Core, options PeriodicSyncOption) {
+	t := time.NewTicker(options.Period * time.Millisecond)
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C: // Activate periodically
+			if err := w.SyncPolling(); err != nil {
+				options.Cancel()
+			}
+		}
+	}
 }

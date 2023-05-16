@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -142,7 +143,7 @@ func (core *Core) SyncCheck() error {
 	return nil
 }
 
-func (core *Core) Sync() error {
+func (core *Core) Sync() (*SyncResponse, error) {
 	ts := ^time.Now().UnixNano()
 
 	params := url.Values{}
@@ -153,14 +154,14 @@ func (core *Core) Sync() error {
 
 	u, err := url.ParseRequestURI(core.Config.Api.Sync)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	u.RawQuery = params.Encode()
 
 	baseRequest, err := core.GetBaseRequest()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	data := SyncRequest{
@@ -171,12 +172,12 @@ func (core *Core) Sync() error {
 
 	marshalled, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req, err := http.NewRequest("POST", u.String(), bytes.NewReader(marshalled))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -184,32 +185,32 @@ func (core *Core) Sync() error {
 
 	resp, err := core.Client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("http status error: " + resp.Status)
+		return nil, errors.New("http status error: " + resp.Status)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var result SyncResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		return err
+		return nil, err
 	}
 
 	if result.BaseResponse.Ret != 0 {
-		return errors.New(result.BaseResponse.ErrMsg)
+		return nil, errors.New(result.BaseResponse.ErrMsg)
 	}
 
 	core.SyncKey = result.SyncCheckKey
 	core.SetFormatedSyncKey(core.SyncKey)
 
-	return nil
+	return &result, nil
 }
 
 func (core *Core) SetFormatedSyncKey(syncKey SyncKey) {
@@ -219,4 +220,37 @@ func (core *Core) SetFormatedSyncKey(syncKey SyncKey) {
 			strconv.Itoa(item.Val)
 	}
 	core.FormatedSyncKey = strings.Join(syncKeyList, "|")
+}
+
+func (core *Core) SyncPolling() error {
+	if err := core.SyncCheck(); err != nil {
+		return err
+	}
+
+	log.Println(core.SyncSelector)
+
+	if core.SyncSelector != 0 {
+		var err error
+		var data *SyncResponse
+		if data, err = core.Sync(); err != nil {
+			return err
+		}
+		core.LastSyncTime = time.Now().UnixNano()
+		core.HandleSync(data)
+	}
+
+	return nil
+}
+
+func (core *Core) HandleSync(data *SyncResponse) error {
+	if data.AddMsgCount > 0 {
+		// Handle new messages
+		log.Println("got new messages")
+	}
+
+	if data.ModContactCount > 0 {
+		// Handle new contacts
+		log.Println("got new contacts")
+	}
+	return nil
 }
