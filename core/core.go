@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -454,16 +453,6 @@ func (core *Core) GetBaseRequest() (*BaseRequest, error) {
 		Skey:     core.SessionData.Skey,
 		DeviceID: utils.GetDeviceID(),
 	}, nil
-}
-
-func (core *Core) UpdateContacts() error {
-	if len(core.ContactList) < 0 {
-		return errors.New("empty contact list")
-	}
-
-	log.Println("contact list updated")
-
-	return nil
 }
 
 func (core *Core) StatusNotify() error {

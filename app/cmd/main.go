@@ -20,7 +20,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	qrterminal.Generate(core.QrCode, qrterminal.L, os.Stdout)
+	qrterminal.Generate(
+		core.QrCode,
+		qrterminal.L,
+		os.Stdout,
+	)
 	log.Println(core.QrCodeUrl)
 
 	err = core.PreLogin()
@@ -41,11 +45,6 @@ func main() {
 	}
 
 	err = core.Init()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = core.UpdateContacts()
 	if err != nil {
 		log.Fatal(err)
 	}
