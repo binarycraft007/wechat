@@ -447,6 +447,11 @@ func (core *Core) Login() error {
 		core.SessionData.PassTicket = rePassTicket.FindStringSubmatch(data)[1]
 	}
 
+	dataTicketFound := false
+	uidFound := false
+	sidFound := false
+	passTicketFound := false
+
 	for name, values := range resp.Header {
 		// Loop over all values for the name.
 		for _, value := range values {
@@ -460,14 +465,24 @@ func (core *Core) Login() error {
 					strings.Contains(cookie, "data") &&
 					strings.Contains(cookie, "ticket") {
 					core.SessionData.DataTicket = re.FindStringSubmatch(cookie)[1]
+					dataTicketFound = true
 				} else if strings.Contains(cookie, "wxuin") {
 					core.SessionData.Uin = re.FindStringSubmatch(cookie)[1]
+					uidFound = true
 				} else if strings.Contains(cookie, "wxsid") {
 					core.SessionData.Sid = re.FindStringSubmatch(cookie)[1]
+					sidFound = true
 				} else if strings.Contains(cookie, "pass_ticket") {
 					core.SessionData.PassTicket = re.FindStringSubmatch(cookie)[1]
+					passTicketFound = true
 				}
 			}
+		}
+		if dataTicketFound == true &&
+			uidFound == true &&
+			sidFound == true &&
+			passTicketFound == true {
+			break
 		}
 	}
 
