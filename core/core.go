@@ -246,14 +246,7 @@ func (core *Core) PreLogin() error {
 			return err
 		}
 
-		u.Path = ""
-		u.RawQuery = ""
-		u.Fragment = ""
-
-		urlStr := fmt.Sprintf("%v", u)
-
-		skipLen := len("https://")
-		config, err := utils.NewConfig(utils.ConfigOption{Host: urlStr[skipLen:]})
+		config, err := utils.NewConfig(utils.ConfigOption{Host: u.Hostname()})
 		if err != nil {
 			return err
 		}
