@@ -276,7 +276,8 @@ func New() (*Core, error) {
 
 	core := Core{
 		Client: &http.Client{
-			Jar: jar,
+			CheckRedirect: nil,
+			Jar:           jar,
 		},
 	}
 
