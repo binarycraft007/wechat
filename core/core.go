@@ -481,6 +481,7 @@ func (core *Core) StatusNotify() error {
 		code = 3
 		userName = core.User.UserName
 	}
+	core.NotifyUserName = ""
 
 	data := StatusNotifyRequest{
 		BaseRequest:  *baseRequest,
