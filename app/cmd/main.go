@@ -52,5 +52,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = wechatCore.Sync()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	wechatCore.LastSyncTime = time.Now().UnixNano()
 }

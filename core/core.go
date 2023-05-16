@@ -58,6 +58,12 @@ type BatchGetContactRequest struct {
 	List        []Contact   `json:"List"`
 }
 
+type SyncRequest struct {
+	BaseRequest BaseRequest `json:"BaseRequest"`
+	SyncKey     SyncKey     `json:"SyncKey"`
+	RR          int64       `json:"rr"`
+}
+
 type BaseRequest struct {
 	Uin      int64  `json:"Uin"`
 	Sid      string `json:"Sid"`
@@ -140,6 +146,92 @@ type StatusNotifyResponse struct {
 	MsgID        string       `json:"MsgID"`
 }
 
+type SyncResponse struct {
+	BaseResponse BaseResponse `json:"BaseResponse"`
+	AddMsgCount  int          `json:"AddMsgCount"`
+	AddMsgList   []struct {
+		MsgID                string `json:"MsgId"`
+		FromUserName         string `json:"FromUserName"`
+		ToUserName           string `json:"ToUserName"`
+		MsgType              int    `json:"MsgType"`
+		Content              string `json:"Content"`
+		Status               int    `json:"Status"`
+		ImgStatus            int    `json:"ImgStatus"`
+		CreateTime           int    `json:"CreateTime"`
+		VoiceLength          int    `json:"VoiceLength"`
+		PlayLength           int    `json:"PlayLength"`
+		FileName             string `json:"FileName"`
+		FileSize             string `json:"FileSize"`
+		MediaID              string `json:"MediaId"`
+		URL                  string `json:"Url"`
+		AppMsgType           int    `json:"AppMsgType"`
+		StatusNotifyCode     int    `json:"StatusNotifyCode"`
+		StatusNotifyUserName string `json:"StatusNotifyUserName"`
+		RecommendInfo        struct {
+			UserName   string `json:"UserName"`
+			NickName   string `json:"NickName"`
+			QQNum      int    `json:"QQNum"`
+			Province   string `json:"Province"`
+			City       string `json:"City"`
+			Content    string `json:"Content"`
+			Signature  string `json:"Signature"`
+			Alias      string `json:"Alias"`
+			Scene      int    `json:"Scene"`
+			VerifyFlag int    `json:"VerifyFlag"`
+			AttrStatus int    `json:"AttrStatus"`
+			Sex        int    `json:"Sex"`
+			Ticket     string `json:"Ticket"`
+			OpCode     int    `json:"OpCode"`
+		} `json:"RecommendInfo"`
+		ForwardFlag int `json:"ForwardFlag"`
+		AppInfo     struct {
+			AppID string `json:"AppID"`
+			Type  int    `json:"Type"`
+		} `json:"AppInfo"`
+		HasProductID  int    `json:"HasProductId"`
+		Ticket        string `json:"Ticket"`
+		ImgHeight     int    `json:"ImgHeight"`
+		ImgWidth      int    `json:"ImgWidth"`
+		SubMsgType    int    `json:"SubMsgType"`
+		NewMsgID      int64  `json:"NewMsgId"`
+		OriContent    string `json:"OriContent"`
+		EncryFileName string `json:"EncryFileName"`
+	} `json:"AddMsgList"`
+	ModContactCount        int   `json:"ModContactCount"`
+	ModContactList         []any `json:"ModContactList"`
+	DelContactCount        int   `json:"DelContactCount"`
+	DelContactList         []any `json:"DelContactList"`
+	ModChatRoomMemberCount int   `json:"ModChatRoomMemberCount"`
+	ModChatRoomMemberList  []any `json:"ModChatRoomMemberList"`
+	Profile                struct {
+		BitFlag  int `json:"BitFlag"`
+		UserName struct {
+			Buff string `json:"Buff"`
+		} `json:"UserName"`
+		NickName struct {
+			Buff string `json:"Buff"`
+		} `json:"NickName"`
+		BindUin   int `json:"BindUin"`
+		BindEmail struct {
+			Buff string `json:"Buff"`
+		} `json:"BindEmail"`
+		BindMobile struct {
+			Buff string `json:"Buff"`
+		} `json:"BindMobile"`
+		Status            int    `json:"Status"`
+		Sex               int    `json:"Sex"`
+		PersonalCard      int    `json:"PersonalCard"`
+		Alias             string `json:"Alias"`
+		HeadImgUpdateFlag int    `json:"HeadImgUpdateFlag"`
+		HeadImgURL        string `json:"HeadImgUrl"`
+		Signature         string `json:"Signature"`
+	} `json:"Profile"`
+	ContinueFlag int     `json:"ContinueFlag"`
+	SyncKey      SyncKey `json:"SyncKey"`
+	SKey         string  `json:"SKey"`
+	SyncCheckKey SyncKey `json:"SyncCheckKey"`
+}
+
 type GetContactResponse struct {
 	BaseResponse BaseResponse `json:"BaseResponse"`
 	MemberCount  int          `json:"MemberCount"`
@@ -168,6 +260,7 @@ type Core struct {
 	ContactMap      map[string]Contact
 	LastSyncTime    int64
 	SyncKey         SyncKey
+	SyncSelector    int
 	FormatedSyncKey string
 	ContactSeq      int
 }
@@ -221,6 +314,7 @@ func (core *Core) GetUUID() error {
 
 func (core *Core) PreLogin() error {
 	ts := ^time.Now().UnixNano()
+
 	params := url.Values{}
 	params.Add("tip", "0")
 	params.Add("uuid", core.SessionData.UUID)
@@ -451,7 +545,7 @@ func (core *Core) Init() error {
 	}
 
 	core.SyncKey = result.SyncKey
-	core.UpdateSyncKey()
+	core.SetFormatedSyncKey(result.SyncKey)
 
 	core.User = result.User
 	core.ContactMap = make(map[string]Contact)
@@ -555,7 +649,8 @@ func (core *Core) StatusNotify() error {
 }
 
 func (core *Core) GetContact() error {
-	ts := time.Now().UnixNano()
+	ts := time.Now().UnixNano() / int64(time.Millisecond)
+
 	params := url.Values{}
 	params.Add("seq", fmt.Sprintf("%d", int(core.ContactSeq)))
 	params.Add("skey", core.SessionData.Skey)
@@ -570,8 +665,13 @@ func (core *Core) GetContact() error {
 	u.RawQuery = params.Encode()
 	urlStr := fmt.Sprintf("%v", u)
 
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return err
+	}
+
 	client := &http.Client{}
-	resp, err := client.Get(urlStr)
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -615,7 +715,8 @@ func (core *Core) GetContact() error {
 }
 
 func (core *Core) BatchGetContact(contacts []Contact) error {
-	ts := time.Now().UnixNano()
+	ts := time.Now().UnixNano() / int64(time.Millisecond)
+
 	params := url.Values{}
 	params.Add("pass_ticket", core.SessionData.PassTicket)
 	params.Add("type", "ex")
@@ -686,17 +787,15 @@ func (core *Core) BatchGetContact(contacts []Contact) error {
 }
 
 func (core *Core) SyncCheck() error {
-	ts := time.Now().UnixNano()
+	ts := time.Now().UnixNano() / int64(time.Millisecond)
 
 	params := url.Values{}
+	params.Add("r", fmt.Sprintf("%d", int64(ts)))
 	params.Add("sid", core.SessionData.Sid)
 	params.Add("uid", core.SessionData.Uin)
 	params.Add("skey", core.SessionData.Skey)
 	params.Add("deviceid", utils.GetDeviceID())
-	params.Add("r", fmt.Sprintf("%d", int64(ts)))
 	params.Add("synckey", core.FormatedSyncKey)
-
-	fmt.Println(core.FormatedSyncKey)
 
 	u, err := url.ParseRequestURI(core.Config.Api.SyncCheck)
 	if err != nil {
@@ -706,8 +805,13 @@ func (core *Core) SyncCheck() error {
 	u.RawQuery = params.Encode()
 	urlStr := fmt.Sprintf("%v", u)
 
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return err
+	}
+
 	client := &http.Client{}
-	resp, err := client.Get(urlStr)
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -718,18 +822,101 @@ func (core *Core) SyncCheck() error {
 		return err
 	}
 
-	fmt.Println(string(body))
+	if strings.Contains(string(body), "retcode:\"1101\"") {
+		return errors.New("already logged out")
+	}
+
+	start := strings.Index(string(body), "selector:")
+	start += len("selector:") + 1
+	end := len(string(body)) - 2
+
+	selectorStr := string(body)[start:end]
+	selector, err := strconv.ParseInt(selectorStr, 10, 64)
+	if err != nil {
+		return err
+	}
+	core.SyncSelector = int(selector)
 
 	return nil
 }
 
-func (core *Core) UpdateSyncKey() {
-	if len(core.FormatedSyncKey) == 0 && core.SyncKey.Count > 0 {
-		syncKeyList := make([]string, len(core.SyncKey.List))
-		for i, item := range core.SyncKey.List {
-			syncKeyList[i] = strconv.Itoa(item.Key) + "_" +
-				strconv.Itoa(item.Val)
-		}
-		core.FormatedSyncKey = strings.Join(syncKeyList, "|")
+func (core *Core) Sync() error {
+	ts := ^time.Now().UnixNano()
+
+	params := url.Values{}
+	params.Add("sid", core.SessionData.Sid)
+	params.Add("skey", core.SessionData.Skey)
+	params.Add("pass_ticket", core.SessionData.PassTicket)
+	params.Add("lang", "zh_CN")
+
+	u, err := url.ParseRequestURI(core.Config.Api.Sync)
+	if err != nil {
+		return err
 	}
+
+	u.RawQuery = params.Encode()
+	urlStr := fmt.Sprintf("%v", u)
+
+	baseRequest, err := core.GetBaseRequest()
+	if err != nil {
+		return err
+	}
+
+	data := SyncRequest{
+		BaseRequest: *baseRequest,
+		SyncKey:     core.SyncKey,
+		RR:          int64(ts),
+	}
+
+	marshalled, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(marshalled))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("http status error: " + resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var result SyncResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return err
+	}
+
+	if result.BaseResponse.Ret != 0 {
+		return errors.New(result.BaseResponse.ErrMsg)
+	}
+
+	core.SyncKey = result.SyncCheckKey
+	core.SetFormatedSyncKey(core.SyncKey)
+
+	return nil
+}
+
+func (core *Core) SetFormatedSyncKey(syncKey SyncKey) {
+	syncKeyList := make([]string, len(syncKey.List))
+	for i, item := range syncKey.List {
+		syncKeyList[i] = strconv.Itoa(item.Key) + "_" +
+			strconv.Itoa(item.Val)
+	}
+	core.FormatedSyncKey = strings.Join(syncKeyList, "|")
 }
