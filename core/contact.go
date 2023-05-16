@@ -58,15 +58,15 @@ func (core *Core) GetContact() error {
 	}
 
 	if result.Seq == 0 {
-		contacts := make([]Contact, len(core.ContactMap))
-		i := 0
-		for _, contact := range core.ContactMap {
+		var contacts []Contact
+		for _, contact := range result.MemberList {
+			core.ContactMap[contact.UserName] = contact
 			if strings.HasPrefix(contact.UserName, "@@") &&
 				contact.MemberCount == 0 {
-				contacts[i] = contact
-				i++
+				contacts = append(contacts, contact)
 			}
 		}
+
 		err := core.BatchGetContact(contacts)
 		if err != nil {
 			return err

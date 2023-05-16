@@ -16,6 +16,8 @@ import (
 	"github.com/binarycraft007/wechat/core/utils"
 )
 
+type SyncFunc = func(data *SyncResponse) error
+
 func (core *Core) StatusNotify() error {
 	params := url.Values{}
 	params.Add("pass_ticket", core.SessionData.PassTicket)
@@ -246,11 +248,30 @@ func (core *Core) HandleSync(data *SyncResponse) error {
 	if data.AddMsgCount > 0 {
 		// Handle new messages
 		log.Println("got new messages")
+		for _, msg := range data.AddMsgList {
+			log.Println("new message: " + msg.Content)
+		}
+
+		if core.SyncMsgFunc != nil {
+			if err := core.SyncMsgFunc(data); err != nil {
+				return err
+			}
+		}
 	}
 
 	if data.ModContactCount > 0 {
 		// Handle new contacts
 		log.Println("got new contacts")
+		for _, contact := range data.ModContactList {
+			log.Println("new contact: " + contact.UserName)
+			core.ContactMap[contact.UserName] = contact
+		}
+
+		if core.SyncContactFunc != nil {
+			if err := core.SyncContactFunc(data); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

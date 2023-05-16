@@ -20,7 +20,10 @@ func main() {
 	var err error
 	var wechatCore *core.Core
 
-	if wechatCore, err = core.New(); err != nil {
+	if wechatCore, err = core.New(core.CoreOption{
+		SyncMsgFunc:     nil,
+		SyncContactFunc: nil,
+	}); err != nil {
 		log.Fatal(err)
 	}
 

@@ -200,12 +200,12 @@ type SyncResponse struct {
 		OriContent    string `json:"OriContent"`
 		EncryFileName string `json:"EncryFileName"`
 	} `json:"AddMsgList"`
-	ModContactCount        int   `json:"ModContactCount"`
-	ModContactList         []any `json:"ModContactList"`
-	DelContactCount        int   `json:"DelContactCount"`
-	DelContactList         []any `json:"DelContactList"`
-	ModChatRoomMemberCount int   `json:"ModChatRoomMemberCount"`
-	ModChatRoomMemberList  []any `json:"ModChatRoomMemberList"`
+	ModContactCount        int       `json:"ModContactCount"`
+	ModContactList         []Contact `json:"ModContactList"`
+	DelContactCount        int       `json:"DelContactCount"`
+	DelContactList         []any     `json:"DelContactList"`
+	ModChatRoomMemberCount int       `json:"ModChatRoomMemberCount"`
+	ModChatRoomMemberList  []any     `json:"ModChatRoomMemberList"`
 	Profile                struct {
 		BitFlag  int `json:"BitFlag"`
 		UserName struct {
@@ -238,6 +238,6 @@ type SyncResponse struct {
 type GetContactResponse struct {
 	BaseResponse BaseResponse `json:"BaseResponse"`
 	MemberCount  int          `json:"MemberCount"`
-	MemberList   []any        `json:"MemberList"`
+	MemberList   []Contact    `json:"MemberList"`
 	Seq          int          `json:"Seq"`
 }

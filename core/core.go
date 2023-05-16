@@ -45,15 +45,24 @@ type Core struct {
 	FormatedSyncKey string
 	ContactSeq      int
 	Client          *http.Client
+	SyncMsgFunc     SyncFunc
+	SyncContactFunc SyncFunc
 }
 
-func New() (*Core, error) {
+type CoreOption struct {
+	SyncMsgFunc     SyncFunc
+	SyncContactFunc SyncFunc
+}
+
+func New(options CoreOption) (*Core, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, err
 	}
 
 	core := Core{
+		SyncMsgFunc:     options.SyncMsgFunc,
+		SyncContactFunc: options.SyncContactFunc,
 		Client: &http.Client{
 			CheckRedirect: nil,
 			Jar:           jar,
