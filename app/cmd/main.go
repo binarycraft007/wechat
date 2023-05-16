@@ -9,43 +9,43 @@ import (
 )
 
 func main() {
-	core, err := core.New()
+	wechatCore, err := core.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = core.GetUUID()
+	err = wechatCore.GetUUID()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(core.QrCode)
-	fmt.Println(core.QrCodeUrl)
+	fmt.Println(wechatCore.QrCode)
+	fmt.Println(wechatCore.QrCodeUrl)
 
-	err = core.PreLogin()
+	err = wechatCore.PreLogin()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = core.Login()
+	err = wechatCore.Login()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = core.Init()
+	err = wechatCore.Init()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = core.StatusNotify()
+	err = wechatCore.StatusNotify()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = core.GetContact()
+	err = wechatCore.GetContact()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	core.LastSyncTime = time.Now().UnixNano()
+	wechatCore.LastSyncTime = time.Now().UnixNano()
 }
