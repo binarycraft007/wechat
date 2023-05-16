@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -45,11 +46,24 @@ type InitRequest struct {
 	BaseRequest BaseRequest `json:"BaseRequest"`
 }
 
+type StatusNotifyRequest struct {
+	BaseRequest  BaseRequest `json:"BaseRequest"`
+	Code         int         `json:"Code"`
+	FromUserName string      `json:"FromUserName"`
+	ToUserName   string      `json:"ToUserName"`
+	ClientMsgId  int64       `json:"ClientMsgId"`
+}
+
 type BaseRequest struct {
 	Uin      int64  `json:"Uin"`
 	Sid      string `json:"Sid"`
 	Skey     string `json:"Skey"`
 	DeviceID string `json:"DeviceID"`
+}
+
+type BaseResponse struct {
+	Ret    int    `json:"Ret"`
+	ErrMsg string `json:"ErrMsg"`
 }
 
 type Contact struct {
@@ -87,13 +101,10 @@ type Contact struct {
 }
 
 type InitResponse struct {
-	BaseResponse struct {
-		Ret    int    `json:"Ret"`
-		ErrMsg string `json:"ErrMsg"`
-	} `json:"BaseResponse"`
-	Count       int       `json:"Count"`
-	ContactList []Contact `json:"ContactList"`
-	SyncKey     struct {
+	BaseResponse BaseResponse `json:"BaseResponse"`
+	Count        int          `json:"Count"`
+	ContactList  []Contact    `json:"ContactList"`
+	SyncKey      struct {
 		Count int `json:"Count"`
 		List  []struct {
 			Key int `json:"Key"`
@@ -112,6 +123,11 @@ type InitResponse struct {
 	ClickReportInterval int    `json:"ClickReportInterval"`
 }
 
+type StatusNotifyResponse struct {
+	BaseResponse BaseResponse `json:"BaseResponse"`
+	MsgID        string       `json:"MsgID"`
+}
+
 type SessionData struct {
 	UUID       string
 	Skey       string
@@ -122,15 +138,16 @@ type SessionData struct {
 }
 
 type Core struct {
-	Config      utils.Config
-	Events      events.EventEmmiter
-	SessionData SessionData
-	User        User
-	Avatar      string
-	RedirectUri string
-	QrCodeUrl   string
-	QrCode      string
-	ContactList []Contact
+	Config         utils.Config
+	Events         events.EventEmmiter
+	SessionData    SessionData
+	User           User
+	Avatar         string
+	RedirectUri    string
+	QrCodeUrl      string
+	QrCode         string
+	NotifyUserName string
+	ContactList    []Contact
 }
 
 func New() (*Core, error) {
@@ -412,7 +429,7 @@ func (core *Core) Init() error {
 	}
 
 	if result.BaseResponse.Ret != 0 {
-		return errors.New("core init error: ")
+		return errors.New(result.BaseResponse.ErrMsg)
 	}
 
 	if len(result.SKey) > 0 {
@@ -443,5 +460,84 @@ func (core *Core) UpdateContacts() error {
 	if len(core.ContactList) < 0 {
 		return errors.New("empty contact list")
 	}
+
+	log.Println("contact list updated")
+
+	return nil
+}
+
+func (core *Core) StatusNotify() error {
+	params := url.Values{}
+	params.Add("pass_ticket", core.SessionData.PassTicket)
+	params.Add("lang", "zh-CN")
+
+	u, err := url.ParseRequestURI(core.Config.Api.StatusNotify)
+	if err != nil {
+		return err
+	}
+	u.RawQuery = params.Encode()
+	urlStr := fmt.Sprintf("%v", u)
+
+	baseRequest, err := core.GetBaseRequest()
+	if err != nil {
+		return err
+	}
+
+	var code int
+	var userName string
+	if len(core.NotifyUserName) > 0 {
+		code = 1
+		userName = core.NotifyUserName
+	} else {
+		code = 3
+		userName = core.User.UserName
+	}
+
+	data := StatusNotifyRequest{
+		BaseRequest:  *baseRequest,
+		Code:         code,
+		FromUserName: core.User.UserName,
+		ToUserName:   userName,
+		ClientMsgId:  time.Now().UnixNano(),
+	}
+
+	marshalled, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(marshalled))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("http status error: " + resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var result StatusNotifyResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return err
+	}
+
+	if result.BaseResponse.Ret != 0 {
+		return errors.New(result.BaseResponse.ErrMsg)
+	}
+
 	return nil
 }

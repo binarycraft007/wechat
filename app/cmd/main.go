@@ -45,5 +45,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = core.UpdateContacts()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = core.StatusNotify()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	//core.Events.Emit("my_event", "this is my payload")
 }
