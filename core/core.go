@@ -110,27 +110,29 @@ type BatchGetContactResponse struct {
 	ContactList  []Contact    `json:"ContactList"`
 }
 
+type SyncKey struct {
+	Count int `json:"Count"`
+	List  []struct {
+		Key int `json:"Key"`
+		Val int `json:"Val"`
+	} `json:"List"`
+}
+
 type InitResponse struct {
-	BaseResponse BaseResponse `json:"BaseResponse"`
-	Count        int          `json:"Count"`
-	ContactList  []Contact    `json:"ContactList"`
-	SyncKey      struct {
-		Count int `json:"Count"`
-		List  []struct {
-			Key int `json:"Key"`
-			Val int `json:"Val"`
-		} `json:"List"`
-	} `json:"SyncKey"`
-	User                User   `json:"User"`
-	ChatSet             string `json:"ChatSet"`
-	SKey                string `json:"SKey"`
-	ClientVersion       int    `json:"ClientVersion"`
-	SystemTime          int    `json:"SystemTime"`
-	GrayScale           int    `json:"GrayScale"`
-	InviteStartCount    int    `json:"InviteStartCount"`
-	MPSubscribeMsgCount int    `json:"MPSubscribeMsgCount"`
-	MPSubscribeMsgList  []any  `json:"MPSubscribeMsgList"`
-	ClickReportInterval int    `json:"ClickReportInterval"`
+	BaseResponse        BaseResponse `json:"BaseResponse"`
+	Count               int          `json:"Count"`
+	ContactList         []Contact    `json:"ContactList"`
+	SyncKey             SyncKey      `json:"SyncKey"`
+	User                User         `json:"User"`
+	ChatSet             string       `json:"ChatSet"`
+	SKey                string       `json:"SKey"`
+	ClientVersion       int          `json:"ClientVersion"`
+	SystemTime          int          `json:"SystemTime"`
+	GrayScale           int          `json:"GrayScale"`
+	InviteStartCount    int          `json:"InviteStartCount"`
+	MPSubscribeMsgCount int          `json:"MPSubscribeMsgCount"`
+	MPSubscribeMsgList  []any        `json:"MPSubscribeMsgList"`
+	ClickReportInterval int          `json:"ClickReportInterval"`
 }
 
 type StatusNotifyResponse struct {
@@ -155,17 +157,19 @@ type SessionData struct {
 }
 
 type Core struct {
-	Config         utils.Config
-	SessionData    SessionData
-	User           User
-	Avatar         string
-	RedirectUri    string
-	QrCodeUrl      string
-	QrCode         string
-	NotifyUserName string
-	ContactMap     map[string]Contact
-	LastSyncTime   int64
-	ContactSeq     int
+	Config          utils.Config
+	SessionData     SessionData
+	User            User
+	Avatar          string
+	RedirectUri     string
+	QrCodeUrl       string
+	QrCode          string
+	NotifyUserName  string
+	ContactMap      map[string]Contact
+	LastSyncTime    int64
+	SyncKey         SyncKey
+	FormatedSyncKey string
+	ContactSeq      int
 }
 
 func New() (*Core, error) {
@@ -446,6 +450,9 @@ func (core *Core) Init() error {
 		core.SessionData.Skey = result.SKey
 	}
 
+	core.SyncKey = result.SyncKey
+	core.UpdateSyncKey()
+
 	core.User = result.User
 	core.ContactMap = make(map[string]Contact)
 
@@ -473,7 +480,7 @@ func (core *Core) GetBaseRequest() (*BaseRequest, error) {
 func (core *Core) StatusNotify() error {
 	params := url.Values{}
 	params.Add("pass_ticket", core.SessionData.PassTicket)
-	params.Add("lang", "zh-CN")
+	params.Add("lang", "zh_CN")
 
 	u, err := url.ParseRequestURI(core.Config.Api.StatusNotify)
 	if err != nil {
@@ -613,7 +620,7 @@ func (core *Core) BatchGetContact(contacts []Contact) error {
 	params.Add("pass_ticket", core.SessionData.PassTicket)
 	params.Add("type", "ex")
 	params.Add("r", fmt.Sprintf("%d", int64(ts)))
-	params.Add("lang", "zh-CN")
+	params.Add("lang", "zh_CN")
 
 	u, err := url.ParseRequestURI(core.Config.Api.BatchGetContact)
 	if err != nil {
@@ -676,4 +683,53 @@ func (core *Core) BatchGetContact(contacts []Contact) error {
 	}
 
 	return nil
+}
+
+func (core *Core) SyncCheck() error {
+	ts := time.Now().UnixNano()
+
+	params := url.Values{}
+	params.Add("sid", core.SessionData.Sid)
+	params.Add("uid", core.SessionData.Uin)
+	params.Add("skey", core.SessionData.Skey)
+	params.Add("deviceid", utils.GetDeviceID())
+	params.Add("r", fmt.Sprintf("%d", int64(ts)))
+	params.Add("synckey", core.FormatedSyncKey)
+
+	fmt.Println(core.FormatedSyncKey)
+
+	u, err := url.ParseRequestURI(core.Config.Api.SyncCheck)
+	if err != nil {
+		return err
+	}
+
+	u.RawQuery = params.Encode()
+	urlStr := fmt.Sprintf("%v", u)
+
+	client := &http.Client{}
+	resp, err := client.Get(urlStr)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(body))
+
+	return nil
+}
+
+func (core *Core) UpdateSyncKey() {
+	if len(core.FormatedSyncKey) == 0 && core.SyncKey.Count > 0 {
+		syncKeyList := make([]string, len(core.SyncKey.List))
+		for i, item := range core.SyncKey.List {
+			syncKeyList[i] = strconv.Itoa(item.Key) + "_" +
+				strconv.Itoa(item.Val)
+		}
+		core.FormatedSyncKey = strings.Join(syncKeyList, "|")
+	}
 }
