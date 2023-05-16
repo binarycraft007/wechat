@@ -163,7 +163,7 @@ type Core struct {
 	QrCodeUrl      string
 	QrCode         string
 	NotifyUserName string
-	ContactList    []Contact
+	ContactMap     map[string]Contact
 	LastSyncTime   int64
 	ContactSeq     int
 }
@@ -447,7 +447,11 @@ func (core *Core) Init() error {
 	}
 
 	core.User = result.User
-	core.ContactList = result.ContactList
+	core.ContactMap = make(map[string]Contact)
+
+	for _, contact := range result.ContactList {
+		core.ContactMap[contact.UserName] = contact
+	}
 
 	return nil
 }
@@ -578,12 +582,23 @@ func (core *Core) GetContact() error {
 
 	if result.Seq > 0 {
 		core.ContactSeq = result.Seq
-		core.GetContact()
+		if err = core.GetContact(); err != nil {
+			return err
+		}
 		return nil
 	}
 
 	if result.Seq == 0 {
-		err := core.BatchGetContact(core.ContactList)
+		contacts := make([]Contact, len(core.ContactMap))
+		i := 0
+		for _, contact := range core.ContactMap {
+			if strings.HasPrefix(contact.UserName, "@@") &&
+				contact.MemberCount == 0 {
+				contacts[i] = contact
+				i++
+			}
+		}
+		err := core.BatchGetContact(contacts)
 		if err != nil {
 			return err
 		}
@@ -656,7 +671,9 @@ func (core *Core) BatchGetContact(contacts []Contact) error {
 		return errors.New(result.BaseResponse.ErrMsg)
 	}
 
-	core.ContactList = result.ContactList
+	for _, contact := range result.ContactList {
+		core.ContactMap[contact.UserName] = contact
+	}
 
 	return nil
 }
