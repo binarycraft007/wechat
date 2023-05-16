@@ -56,6 +56,4 @@ func main() {
 	}
 
 	core.LastSyncTime = time.Now().UnixNano()
-
-	//core.Events.Emit("my_event", "this is my payload")
 }
