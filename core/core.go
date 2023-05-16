@@ -147,6 +147,7 @@ type Core struct {
 	QrCode         string
 	NotifyUserName string
 	ContactList    []Contact
+	LastSyncTime   int64
 }
 
 func New() (*Core, error) {

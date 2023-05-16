@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"os"
 
@@ -53,6 +54,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	core.LastSyncTime = time.Now().UnixNano()
 
 	//core.Events.Emit("my_event", "this is my payload")
 }
