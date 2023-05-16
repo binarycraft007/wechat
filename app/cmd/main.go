@@ -42,5 +42,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = core.GetContact()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	core.LastSyncTime = time.Now().UnixNano()
 }

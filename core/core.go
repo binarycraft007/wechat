@@ -52,6 +52,12 @@ type StatusNotifyRequest struct {
 	ClientMsgId  int64       `json:"ClientMsgId"`
 }
 
+type BatchGetContactRequest struct {
+	BaseRequest BaseRequest `json:"BaseRequest"`
+	Count       int         `json:"Count"`
+	List        []Contact   `json:"List"`
+}
+
 type BaseRequest struct {
 	Uin      int64  `json:"Uin"`
 	Sid      string `json:"Sid"`
@@ -98,6 +104,12 @@ type Contact struct {
 	IsOwner          int    `json:"IsOwner"`
 }
 
+type BatchGetContactResponse struct {
+	BaseResponse BaseResponse `json:"BaseResponse"`
+	Count        int          `json:"Count"`
+	ContactList  []Contact    `json:"ContactList"`
+}
+
 type InitResponse struct {
 	BaseResponse BaseResponse `json:"BaseResponse"`
 	Count        int          `json:"Count"`
@@ -126,6 +138,13 @@ type StatusNotifyResponse struct {
 	MsgID        string       `json:"MsgID"`
 }
 
+type GetContactResponse struct {
+	BaseResponse BaseResponse `json:"BaseResponse"`
+	MemberCount  int          `json:"MemberCount"`
+	MemberList   []any        `json:"MemberList"`
+	Seq          int          `json:"Seq"`
+}
+
 type SessionData struct {
 	UUID       string
 	Skey       string
@@ -146,6 +165,7 @@ type Core struct {
 	NotifyUserName string
 	ContactList    []Contact
 	LastSyncTime   int64
+	ContactSeq     int
 }
 
 func New() (*Core, error) {
@@ -519,6 +539,124 @@ func (core *Core) StatusNotify() error {
 	if result.BaseResponse.Ret != 0 {
 		return errors.New(result.BaseResponse.ErrMsg)
 	}
+
+	return nil
+}
+
+func (core *Core) GetContact() error {
+	ts := time.Now().UnixNano()
+	params := url.Values{}
+	params.Add("seq", fmt.Sprintf("%d", int(core.ContactSeq)))
+	params.Add("skey", core.SessionData.Skey)
+	params.Add("r", fmt.Sprintf("%d", int64(ts)))
+
+	core.ContactSeq = 0
+
+	u, err := url.ParseRequestURI(core.Config.Api.GetContact)
+	if err != nil {
+		return err
+	}
+	u.RawQuery = params.Encode()
+	urlStr := fmt.Sprintf("%v", u)
+
+	client := &http.Client{}
+	resp, err := client.Get(urlStr)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var result GetContactResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return err
+	}
+
+	if result.Seq > 0 {
+		core.ContactSeq = result.Seq
+		core.GetContact()
+		return nil
+	}
+
+	if result.Seq == 0 {
+		err := core.BatchGetContact(core.ContactList)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (core *Core) BatchGetContact(contacts []Contact) error {
+	ts := time.Now().UnixNano()
+	params := url.Values{}
+	params.Add("pass_ticket", core.SessionData.PassTicket)
+	params.Add("type", "ex")
+	params.Add("r", fmt.Sprintf("%d", int64(ts)))
+	params.Add("lang", "zh-CN")
+
+	u, err := url.ParseRequestURI(core.Config.Api.BatchGetContact)
+	if err != nil {
+		return err
+	}
+	u.RawQuery = params.Encode()
+	urlStr := fmt.Sprintf("%v", u)
+
+	baseRequest, err := core.GetBaseRequest()
+	if err != nil {
+		return err
+	}
+
+	data := BatchGetContactRequest{
+		BaseRequest: *baseRequest,
+		Count:       len(contacts),
+		List:        contacts,
+	}
+
+	marshalled, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(marshalled))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("http status error: " + resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var result BatchGetContactResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return err
+	}
+
+	if result.BaseResponse.Ret != 0 {
+		return errors.New(result.BaseResponse.ErrMsg)
+	}
+
+	core.ContactList = result.ContactList
 
 	return nil
 }
