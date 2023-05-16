@@ -17,41 +17,37 @@ type PeriodicSyncOption struct {
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	wechatCore, err := core.New()
-	if err != nil {
+	var err error
+	var wechatCore *core.Core
+
+	if wechatCore, err = core.New(); err != nil {
 		log.Fatal(err)
 	}
 
-	err = wechatCore.GetUUID()
-	if err != nil {
+	if err = wechatCore.GetUUID(); err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(wechatCore.QrCode)
-	fmt.Println(wechatCore.QrCodeUrl)
+	fmt.Println(wechatCore.QrCode)    // print qrcode
+	fmt.Println(wechatCore.QrCodeUrl) // qrcode url
 
-	err = wechatCore.PreLogin()
-	if err != nil {
+	if err = wechatCore.PreLogin(); err != nil {
 		log.Fatal(err)
 	}
 
-	err = wechatCore.Login()
-	if err != nil {
+	if err = wechatCore.Login(); err != nil {
 		log.Fatal(err)
 	}
 
-	err = wechatCore.Init()
-	if err != nil {
+	if err = wechatCore.Init(); err != nil {
 		log.Fatal(err)
 	}
 
-	err = wechatCore.StatusNotify()
-	if err != nil {
+	if err = wechatCore.StatusNotify(); err != nil {
 		log.Fatal(err)
 	}
 
-	err = wechatCore.GetContact()
-	if err != nil {
+	if err = wechatCore.GetContact(); err != nil {
 		log.Fatal(err)
 	}
 
