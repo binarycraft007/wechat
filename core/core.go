@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/binarycraft007/wechat/core/utils"
+	"github.com/skip2/go-qrcode"
 
 	"net/http"
 	"net/url"
@@ -160,7 +161,7 @@ func New() (*Core, error) {
 
 func (core *Core) GetUUID() error {
 	client := &http.Client{}
-	resp, err := client.Post(core.Config.Api.JsLogin, "plain/text", http.NoBody)
+	resp, err := client.Post(core.Config.Api.JsLogin, "", http.NoBody)
 	if err != nil {
 		return err
 	}
@@ -182,7 +183,14 @@ func (core *Core) GetUUID() error {
 	}
 
 	core.QrCodeUrl = "https://login.weixin.qq.com/qrcode/" + uuid
-	core.QrCode = "https://login.weixin.qq.com/l/" + uuid
+	qrCodeContent := "https://login.weixin.qq.com/l/" + uuid
+
+	qrCode, err := qrcode.New(qrCodeContent, qrcode.Medium)
+	if err != nil {
+		return err
+	}
+
+	core.QrCode = qrCode.ToSmallString(false)
 	core.SessionData.UUID = uuid
 	return nil
 }

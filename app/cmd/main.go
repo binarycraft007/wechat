@@ -1,13 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
-	"os"
-
 	"github.com/binarycraft007/wechat/core"
-	"github.com/mdp/qrterminal/v3"
 )
 
 func main() {
@@ -21,11 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	qrterminal.Generate(
-		core.QrCode,
-		qrterminal.L,
-		os.Stdout,
-	)
+	fmt.Println(core.QrCode)
 	log.Println(core.QrCodeUrl)
 
 	err = core.PreLogin()
