@@ -264,8 +264,6 @@ func (core *Core) Login() error {
 		}
 	}
 
-	log.Println("logged in")
-
 	return nil
 }
 
@@ -346,6 +344,8 @@ func (core *Core) Init() error {
 	for _, contact := range result.ContactList {
 		core.ContactMap[contact.UserName] = contact
 	}
+
+	log.Println("logged in:", core.User.NickName)
 
 	return nil
 }

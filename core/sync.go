@@ -229,8 +229,6 @@ func (core *Core) SyncPolling() error {
 		return err
 	}
 
-	log.Println(core.SyncSelector)
-
 	if core.SyncSelector != 0 {
 		var err error
 		var data *SyncResponse
@@ -247,8 +245,10 @@ func (core *Core) SyncPolling() error {
 func (core *Core) HandleSync(data *SyncResponse) error {
 	if data.AddMsgCount > 0 {
 		// Handle new messages
-		log.Println("got new messages")
 		for _, msg := range data.AddMsgList {
+			if len(msg.Content) == 0 {
+				return nil
+			}
 			log.Println("new message: " + msg.Content)
 		}
 

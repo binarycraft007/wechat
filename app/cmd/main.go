@@ -64,7 +64,7 @@ func main() {
 		if err = wechatCore.Logout(); err != nil {
 			log.Println(err.Error())
 		}
-		log.Println("logged out")
+		log.Println("logged out:", wechatCore.User.NickName)
 	}
 }
 
