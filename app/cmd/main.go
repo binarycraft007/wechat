@@ -58,7 +58,9 @@ func main() {
 
 	select {
 	case <-ctx.Done(): // When sync returned 1101
-		// TODO call logout
+		if err = wechatCore.Logout(); err != nil {
+			log.Println(err.Error())
+		}
 		log.Println("logged out")
 	}
 }

@@ -26,6 +26,27 @@ type InitRequest struct {
 	BaseRequest BaseRequest `json:"BaseRequest"`
 }
 
+type Message struct {
+	Type         MessageType `json:"Type"`
+	Content      string      `json:"Content"`
+	FromUserName string      `json:"FromUserName"`
+	ToUserName   string      `json:"ToUserName"`
+	LocalID      int64       `json:"LocalID"`
+	ClientMsgId  int64       `json:"ClientMsgId"`
+}
+
+type SendTextRequest struct {
+	BaseRequest BaseRequest `json:"BaseRequest"`
+	Scene       int         `json:"Scene"`
+	Message     Message     `json:"Msg"`
+}
+
+type SendMsgResponse struct {
+	BaseResponse BaseResponse `json:"BaseResponse"`
+	MsgID        string       `json:"MsgID"`
+	LocalID      string       `json:"LocalID"`
+}
+
 type StatusNotifyRequest struct {
 	BaseRequest  BaseRequest `json:"BaseRequest"`
 	Code         int         `json:"Code"`

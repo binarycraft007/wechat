@@ -354,3 +354,37 @@ func (core *Core) GetBaseRequest() (*BaseRequest, error) {
 		DeviceID: utils.GetDeviceID(),
 	}, nil
 }
+
+func (core *Core) Logout() error {
+	params := url.Values{}
+	params.Add("redirect", "1")
+	params.Add("skey", core.SessionData.Skey)
+	params.Add("type", "0")
+	params.Add("lang", "zh_CN")
+
+	u, err := url.ParseRequestURI(core.Config.Api.Logout)
+	if err != nil {
+		return err
+	}
+	u.RawQuery = params.Encode()
+
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := core.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("http status error: " + resp.Status)
+	}
+
+	return nil
+}
