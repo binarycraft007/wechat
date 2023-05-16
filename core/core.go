@@ -788,7 +788,7 @@ func (core *Core) SyncCheck() error {
 	params := url.Values{}
 	params.Add("r", fmt.Sprintf("%d", int64(ts)))
 	params.Add("sid", core.SessionData.Sid)
-	params.Add("uid", core.SessionData.Uin)
+	params.Add("uin", core.SessionData.Uin)
 	params.Add("skey", core.SessionData.Skey)
 	params.Add("deviceid", utils.GetDeviceID())
 	params.Add("synckey", core.FormatedSyncKey)
