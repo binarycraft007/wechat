@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/skip2/go-qrcode"
 
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 )
 
@@ -263,10 +265,21 @@ type Core struct {
 	SyncSelector    int
 	FormatedSyncKey string
 	ContactSeq      int
+	Client          *http.Client
 }
 
 func New() (*Core, error) {
-	core := Core{}
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	core := Core{
+		Client: &http.Client{
+			Jar: jar,
+		},
+	}
+
 	config, err := utils.NewConfig(utils.ConfigOption{})
 	if err != nil {
 		return nil, err
@@ -277,8 +290,7 @@ func New() (*Core, error) {
 }
 
 func (core *Core) GetUUID() error {
-	client := &http.Client{}
-	resp, err := client.Post(core.Config.Api.JsLogin, "", http.NoBody)
+	resp, err := core.Client.Post(core.Config.Api.JsLogin, "", http.NoBody)
 	if err != nil {
 		return err
 	}
@@ -326,10 +338,8 @@ func (core *Core) PreLogin() error {
 		return err
 	}
 	u.RawQuery = params.Encode()
-	urlStr := fmt.Sprintf("%v", u)
 
-	client := &http.Client{}
-	resp, err := client.Get(urlStr)
+	resp, err := core.Client.Get(u.String())
 	if err != nil {
 		return err
 	}
@@ -386,11 +396,10 @@ func (core *Core) PreLogin() error {
 }
 
 func (core *Core) Login() error {
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
+	core.Client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
 	}
+
 	req, err := http.NewRequest("GET", core.RedirectUri, nil)
 	if err != nil {
 		return err
@@ -399,10 +408,11 @@ func (core *Core) Login() error {
 	req.Header.Add("client-version", "2.0.0")
 	req.Header.Add("referer", "https://wx.qq.com/?&lang=zh_CN&target=t")
 	req.Header.Add("extspam", "Go8FCIkFEokFCggwMDAwMDAwMRAGGvAESySibk50w5Wb3uTl2c2h64jVVrV7gNs06GFlWplHQbY/5FfiO++1yH4ykCyNPWKXmco+wfQzK5R98D3so7rJ5LmGFvBLjGceleySrc3SOf2Pc1gVehzJgODeS0lDL3/I/0S2SSE98YgKleq6Uqx6ndTy9yaL9qFxJL7eiA/R3SEfTaW1SBoSITIu+EEkXff+Pv8NHOk7N57rcGk1w0ZzRrQDkXTOXFN2iHYIzAAZPIOY45Lsh+A4slpgnDiaOvRtlQYCt97nmPLuTipOJ8Qc5pM7ZsOsAPPrCQL7nK0I7aPrFDF0q4ziUUKettzW8MrAaiVfmbD1/VkmLNVqqZVvBCtRblXb5FHmtS8FxnqCzYP4WFvz3T0TcrOqwLX1M/DQvcHaGGw0B0y4bZMs7lVScGBFxMj3vbFi2SRKbKhaitxHfYHAOAa0X7/MSS0RNAjdwoyGHeOepXOKY+h3iHeqCvgOH6LOifdHf/1aaZNwSkGotYnYScW8Yx63LnSwba7+hESrtPa/huRmB9KWvMCKbDThL/nne14hnL277EDCSocPu3rOSYjuB9gKSOdVmWsj9Dxb/iZIe+S6AiG29Esm+/eUacSba0k8wn5HhHg9d4tIcixrxveflc8vi2/wNQGVFNsGO6tB5WF0xf/plngOvQ1/ivGV/C1Qpdhzznh0ExAVJ6dwzNg7qIEBaw+BzTJTUuRcPk92Sn6QDn2Pu3mpONaEumacjW4w6ipPnPw+g2TfywJjeEcpSZaP4Q3YV5HG8D6UjWA4GSkBKculWpdCMadx0usMomsSS/74QgpYqcPkmamB4nVv1JxczYITIqItIKjD35IGKAUwAA==")
-	resp, err := client.Do(req)
+	resp, err := core.Client.Do(req)
 	if err != nil {
 		return err
 	}
+	core.Client.CheckRedirect = nil
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusMovedPermanently {
@@ -447,44 +457,22 @@ func (core *Core) Login() error {
 		core.SessionData.PassTicket = rePassTicket.FindStringSubmatch(data)[1]
 	}
 
-	dataTicketFound := false
-	uidFound := false
-	sidFound := false
-	passTicketFound := false
-
-	for name, values := range resp.Header {
-		// Loop over all values for the name.
-		for _, value := range values {
-			if name == "Set-Cookie" {
-				cookie := string(value)
-				re, err := regexp.Compile("=(.*?);")
-				if err != nil {
-					return err
-				}
-				if strings.Contains(cookie, "webwx") &&
-					strings.Contains(cookie, "data") &&
-					strings.Contains(cookie, "ticket") {
-					core.SessionData.DataTicket = re.FindStringSubmatch(cookie)[1]
-					dataTicketFound = true
-				} else if strings.Contains(cookie, "wxuin") {
-					core.SessionData.Uin = re.FindStringSubmatch(cookie)[1]
-					uidFound = true
-				} else if strings.Contains(cookie, "wxsid") {
-					core.SessionData.Sid = re.FindStringSubmatch(cookie)[1]
-					sidFound = true
-				} else if strings.Contains(cookie, "pass_ticket") {
-					core.SessionData.PassTicket = re.FindStringSubmatch(cookie)[1]
-					passTicketFound = true
-				}
-			}
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == "webwx_data_ticket" {
+			core.SessionData.DataTicket = cookie.Value
 		}
-		if dataTicketFound == true &&
-			uidFound == true &&
-			sidFound == true &&
-			passTicketFound == true {
-			break
+		if cookie.Name == "wxuin" {
+			core.SessionData.Uin = cookie.Value
+		}
+		if cookie.Name == "wxsid" {
+			core.SessionData.Sid = cookie.Value
+		}
+		if cookie.Name == "pass_ticket" {
+			core.SessionData.PassTicket = cookie.Value
 		}
 	}
+
+	log.Println("logged in")
 
 	return nil
 }
@@ -502,7 +490,6 @@ func (core *Core) Init() error {
 		return err
 	}
 	u.RawQuery = params.Encode()
-	urlStr := fmt.Sprintf("%v", u)
 
 	baseRequest, err := core.GetBaseRequest()
 	if err != nil {
@@ -518,7 +505,7 @@ func (core *Core) Init() error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(marshalled))
+	req, err := http.NewRequest("POST", u.String(), bytes.NewReader(marshalled))
 	if err != nil {
 		return err
 	}
@@ -526,8 +513,7 @@ func (core *Core) Init() error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := core.Client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -596,7 +582,6 @@ func (core *Core) StatusNotify() error {
 		return err
 	}
 	u.RawQuery = params.Encode()
-	urlStr := fmt.Sprintf("%v", u)
 
 	baseRequest, err := core.GetBaseRequest()
 	if err != nil {
@@ -627,7 +612,7 @@ func (core *Core) StatusNotify() error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(marshalled))
+	req, err := http.NewRequest("POST", u.String(), bytes.NewReader(marshalled))
 	if err != nil {
 		return err
 	}
@@ -635,8 +620,7 @@ func (core *Core) StatusNotify() error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := core.Client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -678,15 +662,13 @@ func (core *Core) GetContact() error {
 		return err
 	}
 	u.RawQuery = params.Encode()
-	urlStr := fmt.Sprintf("%v", u)
 
-	req, err := http.NewRequest("GET", urlStr, nil)
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return err
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := core.Client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -743,7 +725,6 @@ func (core *Core) BatchGetContact(contacts []Contact) error {
 		return err
 	}
 	u.RawQuery = params.Encode()
-	urlStr := fmt.Sprintf("%v", u)
 
 	baseRequest, err := core.GetBaseRequest()
 	if err != nil {
@@ -761,7 +742,7 @@ func (core *Core) BatchGetContact(contacts []Contact) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(marshalled))
+	req, err := http.NewRequest("POST", u.String(), bytes.NewReader(marshalled))
 	if err != nil {
 		return err
 	}
@@ -769,8 +750,7 @@ func (core *Core) BatchGetContact(contacts []Contact) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := core.Client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -818,15 +798,13 @@ func (core *Core) SyncCheck() error {
 	}
 
 	u.RawQuery = params.Encode()
-	urlStr := fmt.Sprintf("%v", u)
 
-	req, err := http.NewRequest("GET", urlStr, nil)
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return err
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := core.Client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -870,7 +848,6 @@ func (core *Core) Sync() error {
 	}
 
 	u.RawQuery = params.Encode()
-	urlStr := fmt.Sprintf("%v", u)
 
 	baseRequest, err := core.GetBaseRequest()
 	if err != nil {
@@ -888,7 +865,7 @@ func (core *Core) Sync() error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", urlStr, bytes.NewReader(marshalled))
+	req, err := http.NewRequest("POST", u.String(), bytes.NewReader(marshalled))
 	if err != nil {
 		return err
 	}
@@ -896,8 +873,7 @@ func (core *Core) Sync() error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := core.Client.Do(req)
 	if err != nil {
 		return err
 	}
