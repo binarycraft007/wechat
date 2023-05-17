@@ -253,15 +253,19 @@ func (core *Core) SyncPolling() error {
 	switch core.SyncSelector {
 	case MessageContact:
 		core.modDelContact(data) // This will not fail
-		if core.SyncMsgFunc != nil {
-			if err := core.SyncMsgFunc(data); err != nil {
-				return err
-			}
+		if core.SyncMsgFunc == nil {
+			goto sync_contact
 		}
-		if core.SyncContactFunc != nil {
-			if err := core.SyncContactFunc(data); err != nil {
-				return err
-			}
+		if err := core.SyncMsgFunc(data); err != nil {
+			return err
+		}
+
+	sync_contact:
+		if core.SyncContactFunc == nil {
+			return nil
+		}
+		if err := core.SyncContactFunc(data); err != nil {
+			return err
 		}
 	case ModProfile:
 		fmt.Println("profile modified") // TODO Handle this
