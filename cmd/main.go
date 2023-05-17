@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/binarycraft007/wechat"
+	"github.com/gin-gonic/gin"
 )
 
 type PeriodicSyncOption struct {
@@ -60,10 +62,30 @@ func main() {
 		Period: 20,
 	}) // Call as a goroutine
 
+	router := gin.Default()
+	router.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "Welcome Gin Server")
+	})
+
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: router,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil &&
+			err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
 	select {
 	case <-ctx.Done(): // When sync returned 1101
 		if err = wechatCore.Logout(); err != nil {
 			log.Println(err.Error())
+		}
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Fatal("Server forced to shutdown: ", err)
 		}
 		log.Println("logged out:", wechatCore.User.NickName)
 	}
@@ -77,9 +99,9 @@ func periodicSync(w *wechat.Core, options PeriodicSyncOption) {
 		case <-t.C: // Activate periodically
 			var err error
 			if err = w.SyncPolling(); err == nil {
-				return
+				continue
 			}
-			if errors.As(wechat.ErrAlreadyLoggedOut, err) {
+			if errors.As(wechat.ErrAlreadyLoggedOut, &err) {
 				options.Cancel()
 				return
 			}
