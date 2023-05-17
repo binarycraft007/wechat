@@ -35,6 +35,27 @@ type MessageRequest struct {
 	ClientMsgId  int64       `json:"ClientMsgId"`
 }
 
+type UploadMediaRequest struct {
+	BaseRequest   BaseRequest `json:"BaseRequest"`
+	ClientMediaId int64       `json:"ClientMediaId"`
+	TotalLen      int64       `json:"TotalLen"`
+	StartPos      int         `json:"StartPos"`
+	DataLen       int64       `json:"DataLen"`
+	MediaType     int         `json:"MediaType"`
+	UploadType    int         `json:"UploadType"`
+	FromUserName  string      `json:"FromUserName"`
+	ToUserName    string      `json:"ToUserName"`
+}
+
+type UploadMediaResponse struct {
+	BaseResponse      BaseResponse `json:"BaseResponse"`
+	MediaID           string       `json:"MediaId"`
+	StartPos          int          `json:"StartPos"`
+	CDNThumbImgHeight int          `json:"CDNThumbImgHeight"`
+	CDNThumbImgWidth  int          `json:"CDNThumbImgWidth"`
+	EncryFileName     string       `json:"EncryFileName"`
+}
+
 type SendTextRequest struct {
 	BaseRequest BaseRequest    `json:"BaseRequest"`
 	Scene       int            `json:"Scene"`
