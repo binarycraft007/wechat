@@ -81,7 +81,9 @@ func periodicSync(w *wechat.Core, options PeriodicSyncOption) {
 			}
 			if errors.As(wechat.ErrAlreadyLoggedOut, err) {
 				options.Cancel()
+				return
 			}
+			log.Println("sync error:", err.Error())
 		}
 	}
 }
