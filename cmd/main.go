@@ -100,14 +100,6 @@ func main() {
 			log.Fatal("Server forced to shutdown: ", err)
 		}
 		log.Println("logged out:", wechatCore.User.NickName)
-	case <-interruptContext.Done():
-		if err = wechatCore.Logout(); err != nil {
-			log.Println(err.Error())
-		}
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Fatal("Server forced to shutdown: ", err)
-		}
-		log.Println("logged out:", wechatCore.User.NickName)
 	}
 }
 
