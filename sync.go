@@ -137,7 +137,7 @@ func (core *Core) SyncCheck() error {
 	}
 
 	if strings.Contains(string(body), "retcode:\"1101\"") {
-		return errors.New("already logged out")
+		return ErrAlreadyLoggedOut
 	}
 
 	start := strings.Index(string(body), "selector:")

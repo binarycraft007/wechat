@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -74,7 +75,11 @@ func periodicSync(w *wechat.Core, options PeriodicSyncOption) {
 	for {
 		select {
 		case <-t.C: // Activate periodically
-			if err := w.SyncPolling(); err != nil {
+			var err error
+			if err = w.SyncPolling(); err == nil {
+				return
+			}
+			if errors.As(wechat.ErrAlreadyLoggedOut, err) {
 				options.Cancel()
 			}
 		}

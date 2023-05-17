@@ -324,7 +324,7 @@ func (core *Core) Init() error {
 	}
 
 	if result.BaseResponse.Ret == core.Config.SyncCheckRetLogout {
-		return errors.New("already logged out")
+		return ErrAlreadyLoggedOut
 	}
 
 	if result.BaseResponse.Ret != 0 {
