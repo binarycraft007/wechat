@@ -16,6 +16,15 @@ import (
 	"github.com/binarycraft007/wechat/core/utils"
 )
 
+type SyncType = int
+
+const (
+	Normal         SyncType = 0
+	MessageContact SyncType = 2
+	ModProfile     SyncType = 4
+	ModChatRoom    SyncType = 7
+)
+
 type SyncFunc = func(data *SyncResponse) error
 
 func (core *Core) StatusNotify() error {
@@ -140,7 +149,7 @@ func (core *Core) SyncCheck() error {
 	if err != nil {
 		return err
 	}
-	core.SyncSelector = int(selector)
+	core.SyncSelector = SyncType(selector)
 
 	return nil
 }
@@ -229,49 +238,54 @@ func (core *Core) SyncPolling() error {
 		return err
 	}
 
-	if core.SyncSelector != 0 {
-		var err error
-		var data *SyncResponse
-		if data, err = core.Sync(); err != nil {
-			return err
-		}
-		core.LastSyncTime = time.Now().UnixNano()
-		core.HandleSync(data)
+	if core.SyncSelector == Normal {
+		return nil
 	}
 
-	return nil
-}
+	var err error
+	var data *SyncResponse
+	if data, err = core.Sync(); err != nil {
+		return err
+	}
 
-func (core *Core) HandleSync(data *SyncResponse) error {
-	if data.AddMsgCount > 0 {
-		// Handle new messages
-		for _, msg := range data.AddMsgList {
-			if len(msg.Content) == 0 {
-				return nil
-			}
-			log.Println("new message: " + msg.Content)
-		}
+	core.LastSyncTime = time.Now().UnixNano()
 
+	switch core.SyncSelector {
+	case MessageContact:
+		core.modDelContact(data) // This will not fail
 		if core.SyncMsgFunc != nil {
 			if err := core.SyncMsgFunc(data); err != nil {
 				return err
 			}
 		}
-	}
-
-	if data.ModContactCount > 0 {
-		// Handle new contacts
-		log.Println("got new contacts")
-		for _, contact := range data.ModContactList {
-			log.Println("new contact: " + contact.UserName)
-			core.ContactMap[contact.UserName] = contact
-		}
-
 		if core.SyncContactFunc != nil {
 			if err := core.SyncContactFunc(data); err != nil {
 				return err
 			}
 		}
+	case ModProfile:
+		fmt.Println("profile modified") // TODO Handle this
+	case ModChatRoom:
+		fmt.Println("chatroom modified") // TODO Handle this
 	}
+
 	return nil
+}
+
+func (core *Core) modDelContact(data *SyncResponse) {
+	if data.ModContactCount > 0 {
+		// Handle new contacts
+		for _, contact := range data.ModContactList {
+			log.Println("mod contact: " + contact.UserName)
+			core.ContactMap[contact.UserName] = contact
+		}
+	}
+
+	if data.DelContactCount > 0 {
+		// Handle new contacts
+		for _, contact := range data.DelContactList {
+			log.Println("del contact: " + contact.UserName)
+			delete(core.ContactMap, contact.UserName)
+		}
+	}
 }

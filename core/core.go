@@ -41,7 +41,7 @@ type Core struct {
 	ContactMap      map[string]Contact
 	LastSyncTime    int64
 	SyncKey         SyncKey
-	SyncSelector    int
+	SyncSelector    SyncType
 	FormatedSyncKey string
 	ContactSeq      int
 	Client          *http.Client

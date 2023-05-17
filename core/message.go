@@ -43,7 +43,7 @@ func (core *Core) SendText(msg string, to string) error {
 	data := SendTextRequest{
 		BaseRequest: *baseRequest,
 		Scene:       0,
-		Message: Message{
+		Message: MessageRequest{
 			FromUserName: core.User.UserName,
 			ToUserName:   to,
 			Content:      msg,

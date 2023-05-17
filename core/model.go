@@ -26,7 +26,7 @@ type InitRequest struct {
 	BaseRequest BaseRequest `json:"BaseRequest"`
 }
 
-type Message struct {
+type MessageRequest struct {
 	Type         MessageType `json:"Type"`
 	Content      string      `json:"Content"`
 	FromUserName string      `json:"FromUserName"`
@@ -36,9 +36,9 @@ type Message struct {
 }
 
 type SendTextRequest struct {
-	BaseRequest BaseRequest `json:"BaseRequest"`
-	Scene       int         `json:"Scene"`
-	Message     Message     `json:"Msg"`
+	BaseRequest BaseRequest    `json:"BaseRequest"`
+	Scene       int            `json:"Scene"`
+	Message     MessageRequest `json:"Msg"`
 }
 
 type SendMsgResponse struct {
@@ -80,37 +80,37 @@ type BaseResponse struct {
 }
 
 type Contact struct {
-	Uin              int    `json:"Uin"`
-	UserName         string `json:"UserName"`
-	NickName         string `json:"NickName"`
-	HeadImgURL       string `json:"HeadImgUrl"`
-	ContactFlag      int    `json:"ContactFlag"`
-	MemberCount      int    `json:"MemberCount"`
-	MemberList       []any  `json:"MemberList"`
-	RemarkName       string `json:"RemarkName"`
-	HideInputBarFlag int    `json:"HideInputBarFlag"`
-	Sex              int    `json:"Sex"`
-	Signature        string `json:"Signature"`
-	VerifyFlag       int    `json:"VerifyFlag"`
-	OwnerUin         int    `json:"OwnerUin"`
-	PYInitial        string `json:"PYInitial"`
-	PYQuanPin        string `json:"PYQuanPin"`
-	RemarkPYInitial  string `json:"RemarkPYInitial"`
-	RemarkPYQuanPin  string `json:"RemarkPYQuanPin"`
-	StarFriend       int    `json:"StarFriend"`
-	AppAccountFlag   int    `json:"AppAccountFlag"`
-	Statues          int    `json:"Statues"`
-	AttrStatus       int    `json:"AttrStatus"`
-	Province         string `json:"Province"`
-	City             string `json:"City"`
-	Alias            string `json:"Alias"`
-	SnsFlag          int    `json:"SnsFlag"`
-	UniFriend        int    `json:"UniFriend"`
-	DisplayName      string `json:"DisplayName"`
-	ChatRoomID       int    `json:"ChatRoomId"`
-	KeyWord          string `json:"KeyWord"`
-	EncryChatRoomID  string `json:"EncryChatRoomId"`
-	IsOwner          int    `json:"IsOwner"`
+	Uin              int       `json:"Uin"`
+	UserName         string    `json:"UserName"`
+	NickName         string    `json:"NickName"`
+	HeadImgURL       string    `json:"HeadImgUrl"`
+	ContactFlag      int       `json:"ContactFlag"`
+	MemberCount      int       `json:"MemberCount"`
+	MemberList       []Contact `json:"MemberList"`
+	RemarkName       string    `json:"RemarkName"`
+	HideInputBarFlag int       `json:"HideInputBarFlag"`
+	Sex              int       `json:"Sex"`
+	Signature        string    `json:"Signature"`
+	VerifyFlag       int       `json:"VerifyFlag"`
+	OwnerUin         int       `json:"OwnerUin"`
+	PYInitial        string    `json:"PYInitial"`
+	PYQuanPin        string    `json:"PYQuanPin"`
+	RemarkPYInitial  string    `json:"RemarkPYInitial"`
+	RemarkPYQuanPin  string    `json:"RemarkPYQuanPin"`
+	StarFriend       int       `json:"StarFriend"`
+	AppAccountFlag   int       `json:"AppAccountFlag"`
+	Statues          int       `json:"Statues"`
+	AttrStatus       int       `json:"AttrStatus"`
+	Province         string    `json:"Province"`
+	City             string    `json:"City"`
+	Alias            string    `json:"Alias"`
+	SnsFlag          int       `json:"SnsFlag"`
+	UniFriend        int       `json:"UniFriend"`
+	DisplayName      string    `json:"DisplayName"`
+	ChatRoomID       int       `json:"ChatRoomId"`
+	KeyWord          string    `json:"KeyWord"`
+	EncryChatRoomID  string    `json:"EncryChatRoomId"`
+	IsOwner          int       `json:"IsOwner"`
 }
 
 type BatchGetContactResponse struct {
@@ -140,7 +140,7 @@ type InitResponse struct {
 	GrayScale           int          `json:"GrayScale"`
 	InviteStartCount    int          `json:"InviteStartCount"`
 	MPSubscribeMsgCount int          `json:"MPSubscribeMsgCount"`
-	MPSubscribeMsgList  []any        `json:"MPSubscribeMsgList"`
+	MPSubscribeMsgList  []Message    `json:"MPSubscribeMsgList"`
 	ClickReportInterval int          `json:"ClickReportInterval"`
 }
 
@@ -149,63 +149,65 @@ type StatusNotifyResponse struct {
 	MsgID        string       `json:"MsgID"`
 }
 
+type Message struct {
+	MsgID                string `json:"MsgId"`
+	FromUserName         string `json:"FromUserName"`
+	ToUserName           string `json:"ToUserName"`
+	MsgType              int    `json:"MsgType"`
+	Content              string `json:"Content"`
+	Status               int    `json:"Status"`
+	ImgStatus            int    `json:"ImgStatus"`
+	CreateTime           int    `json:"CreateTime"`
+	VoiceLength          int    `json:"VoiceLength"`
+	PlayLength           int    `json:"PlayLength"`
+	FileName             string `json:"FileName"`
+	FileSize             string `json:"FileSize"`
+	MediaID              string `json:"MediaId"`
+	URL                  string `json:"Url"`
+	AppMsgType           int    `json:"AppMsgType"`
+	StatusNotifyCode     int    `json:"StatusNotifyCode"`
+	StatusNotifyUserName string `json:"StatusNotifyUserName"`
+	RecommendInfo        struct {
+		UserName   string `json:"UserName"`
+		NickName   string `json:"NickName"`
+		QQNum      int    `json:"QQNum"`
+		Province   string `json:"Province"`
+		City       string `json:"City"`
+		Content    string `json:"Content"`
+		Signature  string `json:"Signature"`
+		Alias      string `json:"Alias"`
+		Scene      int    `json:"Scene"`
+		VerifyFlag int    `json:"VerifyFlag"`
+		AttrStatus int    `json:"AttrStatus"`
+		Sex        int    `json:"Sex"`
+		Ticket     string `json:"Ticket"`
+		OpCode     int    `json:"OpCode"`
+	} `json:"RecommendInfo"`
+	ForwardFlag int `json:"ForwardFlag"`
+	AppInfo     struct {
+		AppID string `json:"AppID"`
+		Type  int    `json:"Type"`
+	} `json:"AppInfo"`
+	HasProductID  int    `json:"HasProductId"`
+	Ticket        string `json:"Ticket"`
+	ImgHeight     int    `json:"ImgHeight"`
+	ImgWidth      int    `json:"ImgWidth"`
+	SubMsgType    int    `json:"SubMsgType"`
+	NewMsgID      int64  `json:"NewMsgId"`
+	OriContent    string `json:"OriContent"`
+	EncryFileName string `json:"EncryFileName"`
+}
+
 type SyncResponse struct {
-	BaseResponse BaseResponse `json:"BaseResponse"`
-	AddMsgCount  int          `json:"AddMsgCount"`
-	AddMsgList   []struct {
-		MsgID                string `json:"MsgId"`
-		FromUserName         string `json:"FromUserName"`
-		ToUserName           string `json:"ToUserName"`
-		MsgType              int    `json:"MsgType"`
-		Content              string `json:"Content"`
-		Status               int    `json:"Status"`
-		ImgStatus            int    `json:"ImgStatus"`
-		CreateTime           int    `json:"CreateTime"`
-		VoiceLength          int    `json:"VoiceLength"`
-		PlayLength           int    `json:"PlayLength"`
-		FileName             string `json:"FileName"`
-		FileSize             string `json:"FileSize"`
-		MediaID              string `json:"MediaId"`
-		URL                  string `json:"Url"`
-		AppMsgType           int    `json:"AppMsgType"`
-		StatusNotifyCode     int    `json:"StatusNotifyCode"`
-		StatusNotifyUserName string `json:"StatusNotifyUserName"`
-		RecommendInfo        struct {
-			UserName   string `json:"UserName"`
-			NickName   string `json:"NickName"`
-			QQNum      int    `json:"QQNum"`
-			Province   string `json:"Province"`
-			City       string `json:"City"`
-			Content    string `json:"Content"`
-			Signature  string `json:"Signature"`
-			Alias      string `json:"Alias"`
-			Scene      int    `json:"Scene"`
-			VerifyFlag int    `json:"VerifyFlag"`
-			AttrStatus int    `json:"AttrStatus"`
-			Sex        int    `json:"Sex"`
-			Ticket     string `json:"Ticket"`
-			OpCode     int    `json:"OpCode"`
-		} `json:"RecommendInfo"`
-		ForwardFlag int `json:"ForwardFlag"`
-		AppInfo     struct {
-			AppID string `json:"AppID"`
-			Type  int    `json:"Type"`
-		} `json:"AppInfo"`
-		HasProductID  int    `json:"HasProductId"`
-		Ticket        string `json:"Ticket"`
-		ImgHeight     int    `json:"ImgHeight"`
-		ImgWidth      int    `json:"ImgWidth"`
-		SubMsgType    int    `json:"SubMsgType"`
-		NewMsgID      int64  `json:"NewMsgId"`
-		OriContent    string `json:"OriContent"`
-		EncryFileName string `json:"EncryFileName"`
-	} `json:"AddMsgList"`
-	ModContactCount        int       `json:"ModContactCount"`
-	ModContactList         []Contact `json:"ModContactList"`
-	DelContactCount        int       `json:"DelContactCount"`
-	DelContactList         []any     `json:"DelContactList"`
-	ModChatRoomMemberCount int       `json:"ModChatRoomMemberCount"`
-	ModChatRoomMemberList  []any     `json:"ModChatRoomMemberList"`
+	BaseResponse           BaseResponse `json:"BaseResponse"`
+	AddMsgCount            int          `json:"AddMsgCount"`
+	AddMsgList             []Message    `json:"AddMsgList"`
+	ModContactCount        int          `json:"ModContactCount"`
+	ModContactList         []Contact    `json:"ModContactList"`
+	DelContactCount        int          `json:"DelContactCount"`
+	DelContactList         []Contact    `json:"DelContactList"`
+	ModChatRoomMemberCount int          `json:"ModChatRoomMemberCount"`
+	ModChatRoomMemberList  []Contact    `json:"ModChatRoomMemberList"`
 	Profile                struct {
 		BitFlag  int `json:"BitFlag"`
 		UserName struct {
