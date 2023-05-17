@@ -1,4 +1,4 @@
-package core
+package wechat
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binarycraft007/wechat/core/utils"
+	"github.com/binarycraft007/wechat/utils"
 )
 
 type SyncType = int

@@ -1,4 +1,4 @@
-package core
+package wechat
 
 type User struct {
 	Uin               int    `json:"Uin"`

@@ -1,4 +1,4 @@
-package core
+package wechat
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/binarycraft007/wechat/core/utils"
+	"github.com/binarycraft007/wechat/utils"
 	"github.com/skip2/go-qrcode"
 
 	"net/http"

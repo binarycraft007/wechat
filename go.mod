@@ -1,4 +1,4 @@
-module github.com/binarycraft007/wechat/core
+module github.com/binarycraft007/wechat
 
 go 1.20
 

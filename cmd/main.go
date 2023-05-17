@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/binarycraft007/wechat/core"
+	"github.com/binarycraft007/wechat"
 )
 
 type PeriodicSyncOption struct {
@@ -18,9 +18,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var err error
-	var wechatCore *core.Core
+	var wechatCore *wechat.Core
 
-	if wechatCore, err = core.New(core.CoreOption{
+	if wechatCore, err = wechat.New(wechat.CoreOption{
 		SyncMsgFunc:     nil,
 		SyncContactFunc: nil,
 	}); err != nil {
@@ -68,7 +68,7 @@ func main() {
 	}
 }
 
-func periodicSync(w *core.Core, options PeriodicSyncOption) {
+func periodicSync(w *wechat.Core, options PeriodicSyncOption) {
 	t := time.NewTicker(options.Period * time.Millisecond)
 	defer t.Stop()
 	for {

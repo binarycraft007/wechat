@@ -1,4 +1,4 @@
-package core
+package wechat
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/binarycraft007/wechat/core/utils"
+	"github.com/binarycraft007/wechat/utils"
 )
 
 type MessageType int
