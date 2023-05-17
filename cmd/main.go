@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/binarycraft007/wechat"
@@ -18,7 +20,15 @@ type PeriodicSyncOption struct {
 }
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	interruptContext, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+	ctx, cancel := context.WithCancel(interruptContext)
+
+	defer cancel()
+	defer stop()
 
 	var err error
 	var wechatCore *wechat.Core
@@ -90,6 +100,14 @@ func main() {
 			log.Fatal("Server forced to shutdown: ", err)
 		}
 		log.Println("logged out:", wechatCore.User.NickName)
+	case <-interruptContext.Done():
+		if err = wechatCore.Logout(); err != nil {
+			log.Println(err.Error())
+		}
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Fatal("Server forced to shutdown: ", err)
+		}
+		log.Println("logged out:", wechatCore.User.NickName)
 	}
 }
 
@@ -105,9 +123,9 @@ func periodicSync(w *wechat.Core, options PeriodicSyncOption) {
 			}
 			if errors.As(wechat.ErrAlreadyLoggedOut, &err) {
 				options.Cancel()
-				return
+			} else {
+				log.Println("sync error:", err.Error())
 			}
-			log.Println("sync error:", err.Error())
 		}
 	}
 }
