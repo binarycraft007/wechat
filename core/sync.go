@@ -253,7 +253,7 @@ func (core *Core) SyncPolling() error {
 	switch core.SyncSelector {
 	case MessageContact:
 		core.modDelContact(data) // This will not fail
-		if core.SyncMsgFunc == nil {
+		if core.SyncMsgFunc == nil || data.AddMsgCount == 0 {
 			goto sync_contact
 		}
 		if err := core.SyncMsgFunc(data); err != nil {
