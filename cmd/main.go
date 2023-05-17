@@ -64,13 +64,15 @@ func main() {
 
 	router := gin.Default()
 	router.GET("/", func(c *gin.Context) {
+		to := "filehelper"
+		msg := "Welcome Gin Server"
+		if err := wechatCore.SendText(msg, to); err != nil {
+			log.Println("Send message error:", err)
+		}
 		c.String(http.StatusOK, "Welcome Gin Server")
 	})
 
-	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: router,
-	}
+	srv := &http.Server{Addr: ":8080", Handler: router}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil &&
