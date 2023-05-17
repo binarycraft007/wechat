@@ -20,16 +20,6 @@ type PeriodicSyncOption struct {
 }
 
 func main() {
-	interruptContext, stop := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGINT,
-		syscall.SIGTERM,
-	)
-	ctx, cancel := context.WithCancel(interruptContext)
-
-	defer cancel()
-	defer stop()
-
 	var err error
 	var wechatCore *wechat.Core
 
@@ -66,6 +56,16 @@ func main() {
 	if err = wechatCore.GetContact(); err != nil {
 		log.Fatal(err)
 	}
+
+	interruptContext, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+	ctx, cancel := context.WithCancel(interruptContext)
+
+	defer cancel()
+	defer stop()
 
 	go periodicSync(wechatCore, PeriodicSyncOption{
 		Cancel: cancel,
