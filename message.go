@@ -97,7 +97,10 @@ func (core *Core) SendText(msg string, to string) error {
 	return nil
 }
 
-func (core *Core) UploadMedia(name string, fileBytes []byte) error {
+func (core *Core) UploadMedia(
+	name string,
+	fileBytes []byte,
+) (*UploadMediaResponse, error) {
 	mimeType := http.DetectContentType(fileBytes)
 
 	var mediaType string
@@ -112,12 +115,12 @@ func (core *Core) UploadMedia(name string, fileBytes []byte) error {
 		mediaType = "audio"
 	} else {
 		// TODO handle more file types
-		return ErrUnknownFileType
+		return nil, ErrUnknownFileType
 	}
 
 	baseRequest, err := core.GetBaseRequest()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	params := url.Values{}
@@ -125,7 +128,7 @@ func (core *Core) UploadMedia(name string, fileBytes []byte) error {
 
 	u, err := url.ParseRequestURI(core.Config.Api.UploadMedia)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	u.RawQuery = params.Encode()
 
@@ -145,7 +148,7 @@ func (core *Core) UploadMedia(name string, fileBytes []byte) error {
 
 	marshalled, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	gmt := time.Now().UTC().Format(http.TimeFormat)
@@ -166,7 +169,7 @@ func (core *Core) UploadMedia(name string, fileBytes []byte) error {
 	// Create a new form field for the file.
 	part, err := writer.CreateFormFile("filename", name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	part.Write(fileBytes)
@@ -176,7 +179,7 @@ func (core *Core) UploadMedia(name string, fileBytes []byte) error {
 
 	req, err := http.NewRequest("POST", u.String(), formData)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -184,27 +187,27 @@ func (core *Core) UploadMedia(name string, fileBytes []byte) error {
 
 	resp, err := core.Client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("http status error: " + resp.Status)
+		return nil, errors.New("http status error: " + resp.Status)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var result UploadMediaResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		return err
+		return nil, err
 	}
 
 	if result.BaseResponse.Ret != 0 {
-		return errors.New(result.BaseResponse.ErrMsg)
+		return nil, errors.New(result.BaseResponse.ErrMsg)
 	}
 
-	return nil
+	return &result, nil
 }
