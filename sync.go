@@ -25,7 +25,7 @@ const (
 	ModChatRoom    SyncType = 7
 )
 
-type SyncFunc = func(data *SyncResponse) error
+type SyncFunc = func(data *SyncResponse, core *Core) error
 
 func (core *Core) StatusNotify() error {
 	params := url.Values{}
@@ -260,7 +260,7 @@ func (core *Core) SyncPolling() error {
 		if core.SyncMsgFunc == nil || data.AddMsgCount == 0 {
 			goto sync_contact
 		}
-		if err := core.SyncMsgFunc(data); err != nil {
+		if err := core.SyncMsgFunc(data, core); err != nil {
 			return err
 		}
 
@@ -268,7 +268,7 @@ func (core *Core) SyncPolling() error {
 		if core.SyncContactFunc == nil {
 			return nil
 		}
-		if err := core.SyncContactFunc(data); err != nil {
+		if err := core.SyncContactFunc(data, core); err != nil {
 			return err
 		}
 	case ModProfile:

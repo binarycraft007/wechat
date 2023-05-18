@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+type AppMessage struct {
+	Name    string
+	Size    int
+	MediaId string
+	Ext     string
+}
+
 var ErrUnknownFileType = errors.New("unknown file type")
 
 func GetDeviceID() string {
@@ -48,9 +55,29 @@ func DetectMediaType(fileBytes []byte) (*string, error) {
 	} else if strings.HasPrefix(mimeType, "audio/") {
 		mediaType = "audio"
 	} else {
-		// TODO handle more file types
 		return nil, ErrUnknownFileType
 	}
 
 	return &mediaType, nil
+}
+
+func GetAttachmentContent(msg AppMessage) string {
+	// Print the content
+	return fmt.Sprintf(`
+    <appmsg appid='wxeb7ec651dd0aefa9' sdkver=''>
+        <title>%s</title>
+        <des></des>
+        <action></action>
+        <type>6</type>
+        <content></content>
+        <url></url>
+        <lowurl></lowurl>
+        <appattach>
+            <totallen>%d</totallen>
+            <attachid>%s</attachid>
+            <fileext>%s</fileext>
+        </appattach>
+        <extinfo></extinfo>
+    </appmsg>
+    `, msg.Name, msg.Size, msg.MediaId, msg.Ext)
 }

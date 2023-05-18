@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -17,13 +18,25 @@ import (
 type MessageType int
 
 const (
-	Text       MessageType = 1
-	Image      MessageType = 3
-	Attachment MessageType = 6
-	Voice      MessageType = 34
-	Video      MessageType = 43
-	MicroVideo MessageType = 62
-	Emoticon   MessageType = 47
+	Text           MessageType = 1
+	Image          MessageType = 3
+	Attach         MessageType = 6
+	Voice          MessageType = 34
+	Video          MessageType = 43
+	MicroVideo     MessageType = 62
+	Emoticon       MessageType = 47
+	App            MessageType = 49
+	Voip           MessageType = 50
+	VoipNotify     MessageType = 52
+	VoipInvite     MessageType = 53
+	Location       MessageType = 48
+	StatusNotify   MessageType = 51
+	SystemNotice   MessageType = 9999
+	PossibleFriend MessageType = 40
+	Verify         MessageType = 37
+	ShareCard      MessageType = 42
+	System         MessageType = 1e4
+	Recalled       MessageType = 10002
 )
 
 type MediaMessage struct {
@@ -63,16 +76,6 @@ func (core *Core) SendMsg(msgAny interface{}, to string) error {
 			return err
 		}
 
-		if *mediaType == "pic" {
-			uri = core.Config.Api.SendMsgImg
-			msgType = Image
-		} else if *mediaType == "video" {
-			uri = core.Config.Api.SendVideoMsg
-			msgType = Video
-		} else {
-			return ErrInvalidMsgType
-		}
-
 		params.Add("fun", "async")
 		params.Add("f", "json")
 		resp, err := core.UploadMedia(&msgMedia)
@@ -80,14 +83,43 @@ func (core *Core) SendMsg(msgAny interface{}, to string) error {
 			return err
 		}
 
+		var content string = ""
+		if *mediaType == "pic" {
+			uri = core.Config.Api.SendMsgImg
+			msgType = Image
+		} else if *mediaType == "video" {
+			uri = core.Config.Api.SendVideoMsg
+			msgType = Video
+		} else if *mediaType == "doc" {
+			uri = core.Config.Api.SendAppMsg
+			msgType = Attach
+			mimeType := http.DetectContentType(msgMedia.FileBytes)
+			extension, err := mime.ExtensionsByType(mimeType)
+			if err != nil {
+				return err
+			}
+			content = utils.GetAttachmentContent(utils.AppMessage{
+				Name:    msgMedia.Name,
+				Size:    len(msgMedia.FileBytes),
+				MediaId: resp.MediaID,
+				Ext:     extension[1][1:],
+			})
+		} else {
+			return ErrInvalidMsgType
+		}
+
 		messageReq = MessageRequest{
 			FromUserName: core.User.UserName,
 			ToUserName:   to,
-			Content:      nil,
-			MediaId:      &resp.MediaID,
 			Type:         msgType,
 			ClientMsgId:  clientMsgId,
 			LocalID:      clientMsgId,
+		}
+
+		if len(content) > 0 {
+			messageReq.Content = &content
+		} else {
+			messageReq.MediaId = &resp.MediaID
 		}
 	}
 
@@ -112,12 +144,16 @@ func (core *Core) SendMsg(msgAny interface{}, to string) error {
 		Message:     messageReq,
 	}
 
-	marshalled, err := json.Marshal(data)
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	err = encoder.Encode(data)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", u.String(), bytes.NewReader(marshalled))
+	reqBody := bytes.NewReader(buf.Bytes())
+	req, err := http.NewRequest("POST", u.String(), reqBody)
 	if err != nil {
 		return err
 	}

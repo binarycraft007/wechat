@@ -8,12 +8,18 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/binarycraft007/wechat"
 	"github.com/gin-gonic/gin"
 )
+
+type PingMessage struct {
+	FromUserName string
+	ToNickName   string
+}
 
 type PeriodicSyncOption struct {
 	Cancel context.CancelFunc
@@ -25,7 +31,7 @@ func main() {
 	var wechatCore *wechat.Core
 
 	if wechatCore, err = wechat.New(wechat.CoreOption{
-		SyncMsgFunc:     nil,
+		SyncMsgFunc:     onMsgRecv,
 		SyncContactFunc: nil,
 	}); err != nil {
 		log.Fatal(err)
@@ -107,6 +113,19 @@ func main() {
 			log.Println("Send message error:", err)
 		}
 
+		txtBytes, err := ioutil.ReadFile("media/hello.txt")
+		if err != nil {
+			log.Println("Read file error:", err)
+		}
+
+		msgTxt := wechat.MediaMessage{
+			Name:      "hello.txt",
+			FileBytes: txtBytes,
+		}
+		if err := wechatCore.SendMsg(msgTxt, to); err != nil {
+			log.Println("Send message error:", err)
+		}
+
 		c.String(http.StatusOK, "Welcome Gin Server")
 	})
 
@@ -149,4 +168,44 @@ func periodicSync(w *wechat.Core, options PeriodicSyncOption) {
 			}
 		}
 	}
+}
+
+func onMsgRecv(data *wechat.SyncResponse, core *wechat.Core) error {
+	for _, message := range data.AddMsgList {
+		if len(message.Content) == 0 {
+			return nil
+		}
+
+		pingMsg := extractPingMessage(message.Content)
+		userNick := core.User.NickName
+
+		if pingMsg != nil &&
+			strings.HasPrefix(pingMsg.ToNickName, userNick) {
+			to := message.FromUserName
+			msg := "What can I do for you?"
+			if err := core.SendMsg(msg, to); err != nil {
+				log.Println("Send message error:", err)
+			}
+		}
+	}
+	return nil
+}
+
+func extractPingMessage(message string) *PingMessage {
+	if strings.HasPrefix(message, "@") {
+		fromIdxEnd := strings.Index(message, ":")
+		toIdxStart := strings.Index(message, "<br/>@")
+
+		if fromIdxEnd == -1 || toIdxStart == -1 {
+			return nil
+		}
+
+		padding := len("<br/>@")
+
+		return &PingMessage{
+			FromUserName: message[0:fromIdxEnd],
+			ToNickName:   message[toIdxStart+padding:],
+		}
+	}
+	return nil
 }
