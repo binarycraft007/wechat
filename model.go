@@ -38,9 +38,9 @@ type MessageRequest struct {
 type UploadMediaRequest struct {
 	BaseRequest   BaseRequest `json:"BaseRequest"`
 	ClientMediaId int64       `json:"ClientMediaId"`
-	TotalLen      int64       `json:"TotalLen"`
+	TotalLen      int         `json:"TotalLen"`
 	StartPos      int         `json:"StartPos"`
-	DataLen       int64       `json:"DataLen"`
+	DataLen       int         `json:"DataLen"`
 	MediaType     int         `json:"MediaType"`
 	UploadType    int         `json:"UploadType"`
 	FromUserName  string      `json:"FromUserName"`

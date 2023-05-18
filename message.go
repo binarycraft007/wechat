@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -98,12 +97,7 @@ func (core *Core) SendText(msg string, to string) error {
 	return nil
 }
 
-func (core *Core) UploadMedia(file *os.File, to string) error {
-	fileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		return err
-	}
-
+func (core *Core) UploadMedia(name string, fileBytes []byte) error {
 	mimeType := http.DetectContentType(fileBytes)
 
 	var mediaType string
@@ -119,11 +113,6 @@ func (core *Core) UploadMedia(file *os.File, to string) error {
 	} else {
 		// TODO handle more file types
 		return ErrUnknownFileType
-	}
-
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return err
 	}
 
 	baseRequest, err := core.GetBaseRequest()
@@ -145,13 +134,13 @@ func (core *Core) UploadMedia(file *os.File, to string) error {
 	data := UploadMediaRequest{
 		BaseRequest:   *baseRequest,
 		ClientMediaId: clientMsgId,
-		TotalLen:      fileInfo.Size(),
+		TotalLen:      len(fileBytes),
 		StartPos:      0,
-		DataLen:       fileInfo.Size(),
+		DataLen:       len(fileBytes),
 		MediaType:     4,
 		UploadType:    2,
 		FromUserName:  core.User.UserName,
-		ToUserName:    to,
+		ToUserName:    core.User.UserName,
 	}
 
 	marshalled, err := json.Marshal(data)
@@ -165,17 +154,17 @@ func (core *Core) UploadMedia(file *os.File, to string) error {
 	writer := multipart.NewWriter(formData)
 
 	// Add the form fields to the form.
-	writer.WriteField("name", fileInfo.Name())
+	writer.WriteField("name", name)
 	writer.WriteField("type", mimeType)
 	writer.WriteField("lastModifiedDate", gmt)
-	writer.WriteField("size", fmt.Sprintf("%d", fileInfo.Size()))
+	writer.WriteField("size", fmt.Sprintf("%d", len(fileBytes)))
 	writer.WriteField("mediatype", mediaType)
 	writer.WriteField("uploadmediarequest", string(marshalled))
 	writer.WriteField("webwx_data_ticket", core.SessionData.DataTicket)
 	writer.WriteField("pass_ticket", core.SessionData.PassTicket)
 
 	// Create a new form field for the file.
-	part, err := writer.CreateFormFile("filename", fileInfo.Name())
+	part, err := writer.CreateFormFile("filename", name)
 	if err != nil {
 		return err
 	}
