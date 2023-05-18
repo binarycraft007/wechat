@@ -44,17 +44,20 @@ func (core *Core) SendText(msg string, to string) error {
 
 	clientMsgId := utils.GetClientMsgId()
 
+	message := MessageRequest[MessageText]{}
+	message.Data = MessageText{
+		FromUserName: core.User.UserName,
+		ToUserName:   to,
+		Content:      msg,
+		Type:         Text,
+		ClientMsgId:  clientMsgId,
+		LocalID:      clientMsgId,
+	}
+
 	data := SendTextRequest{
 		BaseRequest: *baseRequest,
 		Scene:       0,
-		Message: MessageRequest{
-			FromUserName: core.User.UserName,
-			ToUserName:   to,
-			Content:      msg,
-			Type:         Text,
-			ClientMsgId:  clientMsgId,
-			LocalID:      clientMsgId,
-		},
+		Message:     message.Data,
 	}
 
 	marshalled, err := json.Marshal(data)

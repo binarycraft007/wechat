@@ -18,17 +18,13 @@ func GetClientMsgId() int64 {
 }
 
 func GetErrorMsgInt(code int) string {
-	pc := make([]uintptr, 10) // at least 1 entry needed
-	runtime.Callers(2, pc)
-	f := runtime.FuncForPC(pc[0])
-	file, line := f.FileLine(pc[0])
-	return fmt.Sprintf("%s:%d %s error: %d", file, line, f.Name(), code)
+	pc, file, line, _ := runtime.Caller(1)
+	f := runtime.FuncForPC(pc)
+	return fmt.Sprintf("%s:%d, %s error: %d", file, line, f.Name(), code)
 }
 
 func GetErrorMsgStr(str string) string {
-	pc := make([]uintptr, 10) // at least 1 entry needed
-	runtime.Callers(2, pc)
-	f := runtime.FuncForPC(pc[0])
-	file, line := f.FileLine(pc[0])
-	return fmt.Sprintf("%s:%d %s error: %s", file, line, f.Name(), str)
+	pc, file, line, _ := runtime.Caller(1)
+	f := runtime.FuncForPC(pc)
+	return fmt.Sprintf("%s:%d, %s error: %s", file, line, f.Name(), str)
 }
