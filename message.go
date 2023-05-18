@@ -107,12 +107,15 @@ func (core *Core) UploadMedia(file *os.File, to string) error {
 	mimeType := http.DetectContentType(fileBytes)
 
 	var mediaType string
-	if strings.Contains(mimeType, "image") {
+	if strings.HasPrefix(mimeType, "image/") {
 		mediaType = "pic"
-	} else if strings.Contains(mimeType, "video") {
+	} else if strings.HasPrefix(mimeType, "video/") {
 		mediaType = "video"
-	} else if strings.Contains(mimeType, "text") {
+	} else if strings.HasPrefix(mimeType, "text/") ||
+		strings.HasPrefix(mimeType, "application/") {
 		mediaType = "doc"
+	} else if strings.HasPrefix(mimeType, "audio/") {
+		mediaType = "audio"
 	} else {
 		// TODO handle more file types
 		return ErrUnknownFileType
