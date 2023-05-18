@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/binarycraft007/wechat/utils"
 )
 
 func (core *Core) GetContact() error {
@@ -122,7 +124,8 @@ func (core *Core) BatchGetContact(contacts []Contact) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("http status error: " + resp.Status)
+		errMsg := utils.GetErrorMsgInt(resp.StatusCode)
+		return errors.New(errMsg)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -136,7 +139,8 @@ func (core *Core) BatchGetContact(contacts []Contact) error {
 	}
 
 	if result.BaseResponse.Ret != 0 {
-		return errors.New(result.BaseResponse.ErrMsg)
+		errMsg := utils.GetErrorMsgInt(result.BaseResponse.Ret)
+		return errors.New(errMsg)
 	}
 
 	for _, contact := range result.ContactList {

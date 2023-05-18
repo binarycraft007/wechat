@@ -87,17 +87,18 @@ func main() {
 	go func() {
 		if err := srv.ListenAndServe(); err != nil &&
 			err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+			log.Println("listen error:", err)
+			cancel()
 		}
 	}()
 
 	select {
 	case <-ctx.Done(): // When sync returned 1101
 		if err = wechatCore.Logout(); err != nil {
-			log.Println(err.Error())
+			log.Println("logout error:", err.Error())
 		}
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Fatal("Server forced to shutdown: ", err)
+			log.Println("shutdown error:", err.Error())
 		}
 		log.Println("logged out:", wechatCore.User.NickName)
 	}

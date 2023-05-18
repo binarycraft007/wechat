@@ -97,7 +97,8 @@ func (core *Core) GetUUID() error {
 	uuid := string(body)[start:end]
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("http status error: " + resp.Status)
+		errMsg := utils.GetErrorMsgInt(resp.StatusCode)
+		return errors.New(errMsg)
 	}
 
 	core.QrCodeUrl = "https://login.weixin.qq.com/qrcode/" + uuid
@@ -149,7 +150,8 @@ func (core *Core) PreLogin() error {
 
 		codeStr := string(body)[start:end]
 
-		return errors.New("http status error: " + codeStr)
+		errMsg := utils.GetErrorMsgStr(codeStr)
+		return errors.New(errMsg)
 	}
 
 	if httpStatusSuccess {
@@ -208,7 +210,8 @@ func (core *Core) Login() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusMovedPermanently {
-		return errors.New("http status error: " + resp.Status)
+		errMsg := utils.GetErrorMsgInt(resp.StatusCode)
+		return errors.New(errMsg)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -310,7 +313,8 @@ func (core *Core) Init() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("http status error: " + resp.Status)
+		errMsg := utils.GetErrorMsgInt(resp.StatusCode)
+		return errors.New(errMsg)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -328,7 +332,8 @@ func (core *Core) Init() error {
 	}
 
 	if result.BaseResponse.Ret != 0 {
-		return errors.New(result.BaseResponse.ErrMsg)
+		errMsg := utils.GetErrorMsgInt(result.BaseResponse.Ret)
+		return errors.New(errMsg)
 	}
 
 	if len(result.SKey) > 0 {
@@ -392,7 +397,8 @@ func (core *Core) Logout() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("http status error: " + resp.Status)
+		errMsg := utils.GetErrorMsgInt(resp.StatusCode)
+		return errors.New(errMsg)
 	}
 
 	return nil

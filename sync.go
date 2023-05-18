@@ -82,7 +82,8 @@ func (core *Core) StatusNotify() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("http status error: " + resp.Status)
+		errMsg := utils.GetErrorMsgInt(resp.StatusCode)
+		return errors.New(errMsg)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -96,7 +97,8 @@ func (core *Core) StatusNotify() error {
 	}
 
 	if result.BaseResponse.Ret != 0 {
-		return errors.New(result.BaseResponse.ErrMsg)
+		errMsg := utils.GetErrorMsgInt(result.BaseResponse.Ret)
+		return errors.New(errMsg)
 	}
 
 	return nil
@@ -201,7 +203,8 @@ func (core *Core) Sync() (*SyncResponse, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("http status error: " + resp.Status)
+		errMsg := utils.GetErrorMsgInt(resp.StatusCode)
+		return nil, errors.New(errMsg)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -215,7 +218,8 @@ func (core *Core) Sync() (*SyncResponse, error) {
 	}
 
 	if result.BaseResponse.Ret != 0 {
-		return nil, errors.New(result.BaseResponse.ErrMsg)
+		errMsg := utils.GetErrorMsgInt(result.BaseResponse.Ret)
+		return nil, errors.New(errMsg)
 	}
 
 	core.SyncKey = result.SyncCheckKey
