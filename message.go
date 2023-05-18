@@ -20,6 +20,7 @@ type MessageType int
 const (
 	Text       MessageType = 1
 	Image      MessageType = 3
+	Attachment MessageType = 6
 	Voice      MessageType = 34
 	Video      MessageType = 43
 	MicroVideo MessageType = 62
@@ -44,20 +45,18 @@ func (core *Core) SendText(msg string, to string) error {
 
 	clientMsgId := utils.GetClientMsgId()
 
-	message := MessageRequest[MessageText]{}
-	message.Data = MessageText{
-		FromUserName: core.User.UserName,
-		ToUserName:   to,
-		Content:      msg,
-		Type:         Text,
-		ClientMsgId:  clientMsgId,
-		LocalID:      clientMsgId,
-	}
-
-	data := SendTextRequest{
+	data := SendMsgRequest{
 		BaseRequest: *baseRequest,
 		Scene:       0,
-		Message:     message.Data,
+		Message: MessageRequest{
+			FromUserName: core.User.UserName,
+			ToUserName:   to,
+			Content:      &msg,
+			MediaId:      nil,
+			Type:         Text,
+			ClientMsgId:  clientMsgId,
+			LocalID:      clientMsgId,
+		},
 	}
 
 	marshalled, err := json.Marshal(data)

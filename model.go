@@ -26,30 +26,14 @@ type InitRequest struct {
 	BaseRequest BaseRequest `json:"BaseRequest"`
 }
 
-type MessageText struct {
+type MessageRequest struct {
 	Type         MessageType `json:"Type"`
-	Content      string      `json:"Content"`
+	Content      *string     `json:"Content"`
+	MediaId      *string     `json:"MediaId"`
 	FromUserName string      `json:"FromUserName"`
 	ToUserName   string      `json:"ToUserName"`
 	LocalID      int64       `json:"LocalID"`
 	ClientMsgId  int64       `json:"ClientMsgId"`
-}
-
-type MessageImage struct {
-	Type         MessageType `json:"Type"`
-	Content      string      `json:"Content"`
-	FromUserName string      `json:"FromUserName"`
-	ToUserName   string      `json:"ToUserName"`
-	LocalID      int64       `json:"LocalID"`
-	ClientMsgId  int64       `json:"ClientMsgId"`
-}
-
-type MessageAble interface {
-	MessageText | MessageImage
-}
-
-type MessageRequest[T MessageAble] struct {
-	Data T
 }
 
 type UploadMediaRequest struct {
@@ -73,10 +57,10 @@ type UploadMediaResponse struct {
 	EncryFileName     string       `json:"EncryFileName"`
 }
 
-type SendTextRequest struct {
-	BaseRequest BaseRequest `json:"BaseRequest"`
-	Scene       int         `json:"Scene"`
-	Message     MessageText `json:"Msg"`
+type SendMsgRequest struct {
+	BaseRequest BaseRequest    `json:"BaseRequest"`
+	Scene       int            `json:"Scene"`
+	Message     MessageRequest `json:"Msg"`
 }
 
 type SendMsgResponse struct {
