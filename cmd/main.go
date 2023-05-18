@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os/signal"
@@ -76,9 +77,36 @@ func main() {
 	router.GET("/", func(c *gin.Context) {
 		to := "filehelper"
 		msg := "Welcome Gin Server"
-		if err := wechatCore.SendText(msg, to); err != nil {
+		if err := wechatCore.SendMsg(msg, to); err != nil {
 			log.Println("Send message error:", err)
 		}
+
+		pngBytes, err := ioutil.ReadFile("media/zero.png")
+		if err != nil {
+			log.Println("Read file error:", err)
+		}
+
+		msgPng := wechat.MediaMessage{
+			Name:      "zero.png",
+			FileBytes: pngBytes,
+		}
+		if err := wechatCore.SendMsg(msgPng, to); err != nil {
+			log.Println("Send message error:", err)
+		}
+
+		mp4Bytes, err := ioutil.ReadFile("media/gopher.mp4")
+		if err != nil {
+			log.Println("Read file error:", err)
+		}
+
+		msgMp4 := wechat.MediaMessage{
+			Name:      "gopher.mp4",
+			FileBytes: mp4Bytes,
+		}
+		if err := wechatCore.SendMsg(msgMp4, to); err != nil {
+			log.Println("Send message error:", err)
+		}
+
 		c.String(http.StatusOK, "Welcome Gin Server")
 	})
 

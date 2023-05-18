@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/binarycraft007/wechat/utils"
@@ -27,12 +26,76 @@ const (
 	Emoticon   MessageType = 47
 )
 
-func (core *Core) SendText(msg string, to string) error {
+type MediaMessage struct {
+	Name      string
+	FileBytes []byte
+}
+
+func (core *Core) SendMsg(msgAny interface{}, to string) error {
 	params := url.Values{}
 	params.Add("pass_ticket", core.SessionData.PassTicket)
 	params.Add("lang", "zh_CN")
 
-	u, err := url.ParseRequestURI(core.Config.Api.SendMsg)
+	clientMsgId := utils.GetClientMsgId()
+
+	var uri string
+	var messageReq MessageRequest
+
+	msgText, validText := msgAny.(string)
+	if validText {
+		uri = core.Config.Api.SendMsg
+		messageReq = MessageRequest{
+			FromUserName: core.User.UserName,
+			ToUserName:   to,
+			Content:      &msgText,
+			MediaId:      nil,
+			Type:         Text,
+			ClientMsgId:  clientMsgId,
+			LocalID:      clientMsgId,
+		}
+	}
+
+	msgMedia, validMedia := msgAny.(MediaMessage)
+	if validMedia {
+		var msgType MessageType
+		mediaType, err := utils.DetectMediaType(msgMedia.FileBytes)
+		if err != nil {
+			return err
+		}
+
+		if *mediaType == "pic" {
+			uri = core.Config.Api.SendMsgImg
+			msgType = Image
+		} else if *mediaType == "video" {
+			uri = core.Config.Api.SendVideoMsg
+			msgType = Video
+		} else {
+			return ErrInvalidMsgType
+		}
+
+		params.Add("fun", "async")
+		params.Add("f", "json")
+		resp, err := core.UploadMedia(&msgMedia)
+		if err != nil {
+			return err
+		}
+
+		messageReq = MessageRequest{
+			FromUserName: core.User.UserName,
+			ToUserName:   to,
+			Content:      nil,
+			MediaId:      &resp.MediaID,
+			Type:         msgType,
+			ClientMsgId:  clientMsgId,
+			LocalID:      clientMsgId,
+		}
+	}
+
+	if !validText && !validMedia {
+		return ErrInvalidMsgType
+	}
+
+	u, err := url.ParseRequestURI(uri)
 	if err != nil {
 		return err
 	}
@@ -43,20 +106,10 @@ func (core *Core) SendText(msg string, to string) error {
 		return err
 	}
 
-	clientMsgId := utils.GetClientMsgId()
-
 	data := SendMsgRequest{
 		BaseRequest: *baseRequest,
 		Scene:       0,
-		Message: MessageRequest{
-			FromUserName: core.User.UserName,
-			ToUserName:   to,
-			Content:      &msg,
-			MediaId:      nil,
-			Type:         Text,
-			ClientMsgId:  clientMsgId,
-			LocalID:      clientMsgId,
-		},
+		Message:     messageReq,
 	}
 
 	marshalled, err := json.Marshal(data)
@@ -101,25 +154,10 @@ func (core *Core) SendText(msg string, to string) error {
 	return nil
 }
 
-func (core *Core) UploadMedia(
-	name string,
-	fileBytes []byte,
-) (*UploadMediaResponse, error) {
-	mimeType := http.DetectContentType(fileBytes)
-
-	var mediaType string
-	if strings.HasPrefix(mimeType, "image/") {
-		mediaType = "pic"
-	} else if strings.HasPrefix(mimeType, "video/") {
-		mediaType = "video"
-	} else if strings.HasPrefix(mimeType, "text/") ||
-		strings.HasPrefix(mimeType, "application/") {
-		mediaType = "doc"
-	} else if strings.HasPrefix(mimeType, "audio/") {
-		mediaType = "audio"
-	} else {
-		// TODO handle more file types
-		return nil, ErrUnknownFileType
+func (core *Core) UploadMedia(msg *MediaMessage) (*UploadMediaResponse, error) {
+	mediaType, err := utils.DetectMediaType(msg.FileBytes)
+	if err != nil {
+		return nil, err
 	}
 
 	baseRequest, err := core.GetBaseRequest()
@@ -141,9 +179,9 @@ func (core *Core) UploadMedia(
 	data := UploadMediaRequest{
 		BaseRequest:   *baseRequest,
 		ClientMediaId: clientMsgId,
-		TotalLen:      len(fileBytes),
+		TotalLen:      len(msg.FileBytes),
 		StartPos:      0,
-		DataLen:       len(fileBytes),
+		DataLen:       len(msg.FileBytes),
 		MediaType:     4,
 		UploadType:    2,
 		FromUserName:  core.User.UserName,
@@ -161,22 +199,22 @@ func (core *Core) UploadMedia(
 	writer := multipart.NewWriter(formData)
 
 	// Add the form fields to the form.
-	writer.WriteField("name", name)
-	writer.WriteField("type", mimeType)
+	writer.WriteField("name", msg.Name)
+	writer.WriteField("type", http.DetectContentType(msg.FileBytes))
 	writer.WriteField("lastModifiedDate", gmt)
-	writer.WriteField("size", fmt.Sprintf("%d", len(fileBytes)))
-	writer.WriteField("mediatype", mediaType)
+	writer.WriteField("size", fmt.Sprintf("%d", len(msg.FileBytes)))
+	writer.WriteField("mediatype", *mediaType)
 	writer.WriteField("uploadmediarequest", string(marshalled))
 	writer.WriteField("webwx_data_ticket", core.SessionData.DataTicket)
 	writer.WriteField("pass_ticket", core.SessionData.PassTicket)
 
 	// Create a new form field for the file.
-	part, err := writer.CreateFormFile("filename", name)
+	part, err := writer.CreateFormFile("filename", msg.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	part.Write(fileBytes)
+	part.Write(msg.FileBytes)
 
 	// Close writer before use it in post request
 	writer.Close()
