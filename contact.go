@@ -70,7 +70,7 @@ func (core *Core) GetContact() error {
 		}
 
 		err := core.BatchGetContact(contacts)
-		if err != nil {
+		if err != nil && err != ErrContactListEmpty {
 			return err
 		}
 	}
@@ -79,6 +79,10 @@ func (core *Core) GetContact() error {
 }
 
 func (core *Core) BatchGetContact(contacts []Contact) error {
+	if len(contacts) == 0 {
+		return ErrContactListEmpty
+	}
+
 	ts := time.Now().UnixNano() / int64(time.Millisecond)
 
 	params := url.Values{}
