@@ -98,7 +98,7 @@ func (core *Core) SendMsg(msgAny interface{}, to string) error {
 				Name:    msgMedia.Name,
 				Size:    len(msgMedia.FileBytes),
 				MediaId: resp.MediaID,
-				Ext:     mtype.Extension(),
+				Ext:     mtype.Extension()[1:],
 			})
 		} else {
 			return ErrInvalidMsgType
