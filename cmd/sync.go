@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log"
 	"strings"
 	"time"
@@ -21,6 +20,7 @@ type PeriodicSyncOption struct {
 }
 
 func periodicSync(options PeriodicSyncOption) {
+	var errSlice []bool
 	t := time.NewTicker(options.Period * time.Millisecond)
 	defer t.Stop()
 	for {
@@ -28,10 +28,17 @@ func periodicSync(options PeriodicSyncOption) {
 		case <-t.C: // Activate periodically
 			var err error
 			if err = core.SyncPolling(); err == nil {
+				if len(errSlice) >= 10 {
+					options.Cancel()
+				}
+				errSlice = nil
 				continue
 			}
-			if errors.As(wechat.ErrAlreadyLoggedOut, &err) {
-				options.Cancel()
+			if err == wechat.ErrAlreadyLoggedOut {
+				if len(errSlice) >= 10 {
+					options.Cancel()
+				}
+				errSlice = append(errSlice, true)
 			} else {
 				log.Println("sync error:", err.Error())
 			}
