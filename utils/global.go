@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/gabriel-vasile/mimetype"
 )
 
 type AppMessage struct {
@@ -42,17 +43,17 @@ func GetErrorMsgStr(str string) string {
 }
 
 func DetectMediaType(fileBytes []byte) (*string, error) {
-	mimeType := http.DetectContentType(fileBytes)
+	mtype := mimetype.Detect(fileBytes)
 
 	var mediaType string
-	if strings.HasPrefix(mimeType, "image/") {
+	if strings.HasPrefix(mtype.String(), "image/") {
 		mediaType = "pic"
-	} else if strings.HasPrefix(mimeType, "video/") {
+	} else if strings.HasPrefix(mtype.String(), "video/") {
 		mediaType = "video"
-	} else if strings.HasPrefix(mimeType, "text/") ||
-		strings.HasPrefix(mimeType, "application/") {
+	} else if strings.HasPrefix(mtype.String(), "text/") ||
+		strings.HasPrefix(mtype.String(), "application/") {
 		mediaType = "doc"
-	} else if strings.HasPrefix(mimeType, "audio/") {
+	} else if strings.HasPrefix(mtype.String(), "audio/") {
 		mediaType = "audio"
 	} else {
 		return nil, ErrUnknownFileType

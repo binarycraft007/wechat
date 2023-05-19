@@ -6,13 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/binarycraft007/wechat/utils"
+	"github.com/gabriel-vasile/mimetype"
 )
 
 type MessageType int
@@ -93,16 +93,12 @@ func (core *Core) SendMsg(msgAny interface{}, to string) error {
 		} else if *mediaType == "doc" {
 			uri = core.Config.Api.SendAppMsg
 			msgType = Attach
-			mimeType := http.DetectContentType(msgMedia.FileBytes)
-			extension, err := mime.ExtensionsByType(mimeType)
-			if err != nil {
-				return err
-			}
+			mtype := mimetype.Detect(msgMedia.FileBytes)
 			content = utils.GetAttachmentContent(utils.AppMessage{
 				Name:    msgMedia.Name,
 				Size:    len(msgMedia.FileBytes),
 				MediaId: resp.MediaID,
-				Ext:     extension[1][1:],
+				Ext:     mtype.Extension(),
 			})
 		} else {
 			return ErrInvalidMsgType
@@ -236,7 +232,7 @@ func (core *Core) UploadMedia(msg *MediaMessage) (*UploadMediaResponse, error) {
 
 	// Add the form fields to the form.
 	writer.WriteField("name", msg.Name)
-	writer.WriteField("type", http.DetectContentType(msg.FileBytes))
+	writer.WriteField("type", mimetype.Detect(msg.FileBytes).String())
 	writer.WriteField("lastModifiedDate", gmt)
 	writer.WriteField("size", fmt.Sprintf("%d", len(msg.FileBytes)))
 	writer.WriteField("mediatype", *mediaType)
