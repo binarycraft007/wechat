@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 func initAllApiHanlders(engine *gin.Engine) {
 	engine.GET("/demo", demoHandler)
 	engine.POST("/sendmsg", sendMsgHandler)
+	engine.POST("/sendfile", sendFileHandler)
 }
 
 func demoHandler(c *gin.Context) {
@@ -96,7 +98,7 @@ func sendMsgHandler(c *gin.Context) {
 		return
 	}
 
-	if len(sendMsgReq.TextMsg) == 0 {
+	if len(sendMsgReq.TextMsg) > 0 {
 		if err := core.SendMsg(sendMsgReq.TextMsg, to); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, Message{
 				Msg: err.Error(),
@@ -105,5 +107,48 @@ func sendMsgHandler(c *gin.Context) {
 		}
 	}
 
+	c.IndentedJSON(http.StatusOK, Message{Msg: "success"})
+}
+
+func sendFileHandler(c *gin.Context) {
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.IndentedJSON(http.StatusBadRequest, Message{
+			Msg: err.Error(),
+		})
+		return
+	}
+
+	nickName := c.Request.PostFormValue("NickName")
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(file)
+
+	var to string
+	for _, contact := range core.ContactMap {
+		if strings.Contains(contact.NickName, nickName) {
+			to = contact.UserName
+			break
+		}
+	}
+
+	if len(to) == 0 {
+		c.IndentedJSON(http.StatusNotFound, Message{
+			Msg: "contact not found: " + nickName,
+		})
+		return
+	}
+
+	if len(buf.Bytes()) > 0 {
+		if err := core.SendMsg(wechat.MediaMessage{
+			Name:      header.Filename,
+			FileBytes: buf.Bytes(),
+		}, to); err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, Message{
+				Msg: err.Error(),
+			})
+			return
+		}
+	}
 	c.IndentedJSON(http.StatusOK, Message{Msg: "success"})
 }
