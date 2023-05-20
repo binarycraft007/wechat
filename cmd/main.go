@@ -67,7 +67,7 @@ func main() {
 	})
 
 	router := gin.Default()
-	router.GET("/demo", demoHandler) // demo handler
+	initAllApiHanlders(router) // init all api handlers
 
 	srv := &http.Server{Addr: ":8080", Handler: router}
 
